@@ -30,7 +30,6 @@ export default function NewsDetail() {
       try {
         const id = params.id as string
         const articleData = await newsGetById(id)
-
         if (!articleData) return
 
         setArticle(articleData)
@@ -75,21 +74,8 @@ export default function NewsDetail() {
     )
   }
 
-  // ================= HISTORICAL DISTRIBUTION =================
   const examples = analysis?.historical_context?.examples ?? []
   const total = examples.length
-
-  const positiveCount = examples.filter(
-    (e) => e.direction === "positive"
-  ).length
-  const negativeCount = examples.filter(
-    (e) => e.direction === "negative"
-  ).length
-
-  const positivePct =
-    total > 0 ? Math.round((positiveCount / total) * 100) : 0
-  const negativePct =
-    total > 0 ? Math.round((negativeCount / total) * 100) : 0
 
   return (
     <div className="space-y-6">
@@ -133,56 +119,13 @@ export default function NewsDetail() {
             </CardContent>
           </Card>
 
-          {/* ===== HISTORICAL OUTCOME DISTRIBUTION (NEW) ===== */}
-          {total > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Historical Outcome Distribution</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Similar events (n = {total})
-                </p>
-              </CardHeader>
-
-              <CardContent className="space-y-4">
-                {/* Positive */}
-                <div>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-green-500">Positive</span>
-                    <span>{positivePct}%</span>
-                  </div>
-                  <div className="h-2 w-full bg-muted rounded">
-                    <div
-                      className="h-2 bg-green-500 rounded"
-                      style={{ width: `${positivePct}%` }}
-                    />
-                  </div>
-                </div>
-
-                {/* Negative */}
-                <div>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-red-500">Negative</span>
-                    <span>{negativePct}%</span>
-                  </div>
-                  <div className="h-2 w-full bg-muted rounded">
-                    <div
-                      className="h-2 bg-red-500 rounded"
-                      style={{ width: `${negativePct}%` }}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* -------- Historical Market Context (LIST) -------- */}
+          {/* -------- Historical Market Context -------- */}
           {total > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle>Historical Market Context</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Similar market-moving events retrieved using semantic
-                  similarity
+                  Similar market-moving events retrieved using semantic similarity
                 </p>
               </CardHeader>
 
@@ -194,40 +137,65 @@ export default function NewsDetail() {
                   >
                     <div className="flex justify-between items-start gap-4">
                       <div>
-                        <p className="font-medium">{ex.topic}</p>
+                        {/* ✅ TITLE + URL (SAFE) */}
+                        {ex.url ? (
+                          <a
+                            href={ex.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-medium text-blue-400 hover:underline"
+                          >
+                            {ex.title ?? "Untitled article"}
+                          </a>
+                        ) : (
+                          <p className="font-medium">
+                            {ex.title ?? "Untitled article"}
+                          </p>
+                        )}
+
+                        {/* ✅ DATE (DEFENSIVE) */}
                         <p className="text-xs text-muted-foreground">
-                          {ex.date}
+                          {ex.article_date
+                            ? new Date(ex.article_date).toLocaleDateString()
+                            : "Date unavailable"}
                         </p>
                       </div>
 
+                      {/* ✅ REACTION BADGE */}
                       <Badge
                         className={
-                          ex.direction === "positive"
+                          ex.reaction_label === "positive"
                             ? "bg-green-600"
-                            : "bg-red-600"
+                            : ex.reaction_label === "negative"
+                            ? "bg-red-600"
+                            : "bg-gray-600"
                         }
                       >
-                        {ex.direction}
+                        {ex.reaction_label}
                       </Badge>
                     </div>
 
+                    {/* ✅ MARKET REACTION TEXT */}
                     <p className="text-sm mt-2 text-muted-foreground">
                       Market reaction:{" "}
+                      {ex.reaction_label === "positive" &&
+                        Number.isFinite(ex.max_daily_up) && (
+                          <span className="text-green-600">
+                            +{Number(ex.max_daily_up).toFixed(2)}% max upside
+                          </span>
+                        )}
 
-                      {ex.reaction_label === "positive" && Number.isFinite(ex.max_daily_up) && (
-                        <span className="text-green-600">
-                          +{Number(ex.max_daily_up).toFixed(2)}% max upside
-                        </span>
-                      )}
-
-                      {ex.reaction_label === "negative" && Number.isFinite(ex.max_daily_down) && (
-                        <span className="text-red-600">
-                          {Number(ex.max_daily_down).toFixed(2)}% max downside
-                        </span>
-                      )}
+                      {ex.reaction_label === "negative" &&
+                        Number.isFinite(ex.max_daily_down) && (
+                          <span className="text-red-600">
+                            {Number(ex.max_daily_down).toFixed(2)}% max downside
+                          </span>
+                        )}
 
                       {ex.reaction_label === "neutral" && (
-                        <span className="text-gray-500">No significant price reaction</span>
+                        <span className="text-gray-500">
+                          No significant price reaction
+                        </span>
                       )}
                     </p>
                   </div>
@@ -272,21 +240,6 @@ export default function NewsDetail() {
                       >
                         {analysis.direction}
                       </p>
-                    </div>
-                  )}
-
-                  {analysis.identified_companies.length > 0 && (
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">
-                        Identified Companies
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {analysis.identified_companies.map((c) => (
-                          <Badge key={c.ticker} variant="secondary">
-                            {c.matched_entity}
-                          </Badge>
-                        ))}
-                      </div>
                     </div>
                   )}
 
