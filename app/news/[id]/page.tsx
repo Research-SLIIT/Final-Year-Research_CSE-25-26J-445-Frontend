@@ -213,16 +213,22 @@ export default function NewsDetail() {
 
                     <p className="text-sm mt-2 text-muted-foreground">
                       Market reaction:{" "}
-                      <span
-                        className={
-                          ex.pct_change_2d >= 0
-                            ? "text-green-500"
-                            : "text-red-500"
-                        }
-                      >
-                        {ex.pct_change_2d.toFixed(2)}%
-                      </span>{" "}
-                      over next two sessions
+
+                      {ex.reaction_label === "positive" && Number.isFinite(ex.max_daily_up) && (
+                        <span className="text-green-600">
+                          +{Number(ex.max_daily_up).toFixed(2)}% max upside
+                        </span>
+                      )}
+
+                      {ex.reaction_label === "negative" && Number.isFinite(ex.max_daily_down) && (
+                        <span className="text-red-600">
+                          {Number(ex.max_daily_down).toFixed(2)}% max downside
+                        </span>
+                      )}
+
+                      {ex.reaction_label === "neutral" && (
+                        <span className="text-gray-500">No significant price reaction</span>
+                      )}
                     </p>
                   </div>
                 ))}

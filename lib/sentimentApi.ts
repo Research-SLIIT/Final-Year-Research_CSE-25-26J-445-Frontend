@@ -3,9 +3,14 @@
 export interface HistoricalExample {
   topic: string
   date: string
-  direction: "positive" | "negative"
-  pct_change_2d: number
+  direction: "positive" | "negative" | "neutral"
+  reaction_label: "positive" | "negative" | "neutral"
+  max_daily_up?: number
+  max_daily_down?: number
   faiss_rank: number
+  url?: string
+  title?: string
+  article_date?: string
 }
 
 export interface AnalyzeResponse {
@@ -53,10 +58,25 @@ export async function analyzeNews(text: string): Promise<AnalyzeResponse> {
             (n: any): HistoricalExample => ({
               topic: n.Topic,
               date: n.Date,
+              reaction_label: n.reaction_label ?? "neutral",
               direction:
-                n.reaction_label === "positive" ? "positive" : "negative",
-              pct_change_2d: n.pct_change_2d,
+                n.reaction_label === "positive"
+                  ? "positive"
+                  : n.reaction_label === "negative"
+                  ? "negative"
+                  : "neutral",
+              max_daily_up:
+                n.max_daily_up != null && !isNaN(Number(n.max_daily_up))
+                  ? Number(n.max_daily_up)
+                  : undefined,
+              max_daily_down:
+                n.max_daily_down != null && !isNaN(Number(n.max_daily_down))
+                  ? Number(n.max_daily_down)
+                  : undefined,
               faiss_rank: n.faiss_rank,
+              url: n.url,
+              title: n.title,
+              article_date: n.article_date,
             })
           ),
         }
