@@ -15,43 +15,20 @@ import {
 } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { AnalysisBreakdown } from "@/components/analysis/AnalysisBreakdown"
+import { ScoreBar } from "@/components/analysis/ScoreBar"
 import { ArrowLeft } from "lucide-react"
-
-// Mock explanation data for demonstration
-const MOCK_EXPLANATION = {
-  decision_tree: [
-    {
-      passed: true,
-      description:
-        "News article contains significant market-moving keywords and company mentions. Impact detection model triggered with high confidence.",
-      score: 0.87,
-      threshold: 0.5,
-    },
-    {
-      description:
-        "ML LSTM model analyzed sentiment trajectory and market context. Strong bullish signals detected from historical patterns.",
-      direction: "positive",
-      raw_score: 0.78,
-      confidence: 0.85,
-      source: "LSTM Sentiment Model",
-    },
-    {
-      description:
-        "Lexicon-based sentiment analysis found bullish keywords including 'growth', 'positive', 'earnings', 'upside'. Low contradiction with ML prediction.",
-      score: 0.72,
-      confidence: 0.81,
-      triggered_rules: "growth, positive sentiment, earnings boost, market upside",
-    },
-    {
-      description:
-        "Fusion layer weighted ML model (60%) and Lexicon analysis (40%) to produce final prediction. Both signals aligned positively.",
-      weights: { "ML Model": 0.6, "Lexicon Analysis": 0.4 },
-    },
-  ],
-  final_decision: "POSITIVE",
-  final_score: 0.78,
-  model_confidence: 0.83,
-}
+import {
+  Bar,
+  BarChart,
+  Cell,
+  Pie,
+  PieChart,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts"
 
 export default function NewsDetail() {
   const params = useParams()
@@ -75,10 +52,6 @@ export default function NewsDetail() {
         const result = await analyzeNews(
           articleData.content || articleData.summary
         )
-        // Add mock explanation if backend doesn't provide one
-        if (!result.explanation) {
-          result.explanation = MOCK_EXPLANATION
-        }
         setAnalysis(result)
       } catch (err) {
         console.error("Failed to load article or analysis:", err)
@@ -117,6 +90,34 @@ export default function NewsDetail() {
 
   const examples = analysis?.historical_context?.examples ?? []
   const total = examples.length
+  const chartData =
+    total > 0
+      ? examples.map((ex, idx) => ({
+          name: ex.article_date
+            ? new Date(ex.article_date).toLocaleDateString()
+            : `#${idx + 1}`,
+          up: ex.max_daily_up ?? 0,
+          down: ex.max_daily_down ?? 0,
+        }))
+      : []
+
+  const impactScore =
+    analysis?.explanation?.decision_tree?.[0]?.score ??
+    analysis?.explanation?.final_score ??
+    null
+
+  const stats = analysis?.historical_context?.stats
+  const reactionMix =
+    stats &&
+    (typeof stats.positive_pct === "number" ||
+      typeof stats.neutral_pct === "number" ||
+      typeof stats.negative_pct === "number")
+      ? [
+          { name: "Positive", value: Math.max(stats.positive_pct ?? 0, 0) },
+          { name: "Neutral", value: Math.max(stats.neutral_pct ?? 0, 0) },
+          { name: "Negative", value: Math.max(stats.negative_pct ?? 0, 0) },
+        ]
+      : null
 
   return (
     <div className="space-y-6">
@@ -176,6 +177,40 @@ export default function NewsDetail() {
               </CardHeader>
 
               <CardContent className="space-y-4">
+                {/* ===== Historical reaction mini-chart ===== */}
+                <div className="h-40 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartData}>
+                      <XAxis dataKey="name" hide />
+                      <YAxis
+                        tickFormatter={(value) => `${value}%`}
+                        stroke="#64748b"
+                        fontSize={10}
+                      />
+                      <ReferenceLine y={0} stroke="#64748b" strokeDasharray="3 3" />
+                      <Tooltip
+                        formatter={(value, key) => [
+                          `${Number(value as number).toFixed(2)}%`,
+                          key === "up" ? "Max daily up" : "Max daily down",
+                        ]}
+                      />
+                      <Bar
+                        dataKey="up"
+                        name="Max daily up"
+                        fill="#22c55e"
+                        radius={[4, 4, 0, 0]}
+                      />
+                      <Bar
+                        dataKey="down"
+                        name="Max daily down"
+                        fill="#ef4444"
+                        radius={[0, 0, 4, 4]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* ===== Individual examples list ===== */}
                 {examples.map((ex, idx) => (
                   <div
                     key={idx}
@@ -239,8 +274,31 @@ export default function NewsDetail() {
                         )}
 
                       {ex.reaction_label === "neutral" && (
-                        <span className="text-gray-500">
-                          No significant price reaction
+                        <span className="text-gray-500 inline-flex flex-wrap items-center gap-2">
+                          {Number.isFinite(ex.max_daily_up) ||
+                          Number.isFinite(ex.max_daily_down) ? (
+                            <>
+                              <span className="text-gray-500">Range</span>
+                              <span className="inline-flex items-center gap-1 rounded-full bg-green-500/15 text-green-300 px-2 py-0.5 text-xs font-medium">
+                                <span className="opacity-80">Max up</span>
+                                <span>
+                                  {Number.isFinite(ex.max_daily_up)
+                                    ? `+${Number(ex.max_daily_up).toFixed(2)}%`
+                                    : "—"}
+                                </span>
+                              </span>
+                              <span className="inline-flex items-center gap-1 rounded-full bg-red-500/15 text-red-300 px-2 py-0.5 text-xs font-medium">
+                                <span className="opacity-80">Max down</span>
+                                <span>
+                                  {Number.isFinite(ex.max_daily_down)
+                                    ? `${Number(ex.max_daily_down).toFixed(2)}%`
+                                    : "—"}
+                                </span>
+                              </span>
+                            </>
+                          ) : (
+                            "No significant price reaction"
+                          )}
                         </span>
                       )}
                     </p>
@@ -272,7 +330,65 @@ export default function NewsDetail() {
                     <p className="font-semibold capitalize">
                       {analysis.impact.replace("_", " ")}
                     </p>
+                    {impactScore !== null && (
+                      <div className="mt-2">
+                        <ScoreBar
+                          score={impactScore}
+                          threshold={0.5}
+                          label={`Impact strength (${(impactScore * 100).toFixed(
+                            0
+                          )}%)`}
+                        />
+                      </div>
+                    )}
                   </div>
+
+                  {reactionMix && (
+                    <div className="pt-3 border-t border-border">
+                      <p className="text-sm font-medium mb-2">
+                        Historical reaction mix
+                      </p>
+                      <div className="h-44 w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Tooltip
+                              formatter={(value, name) => [
+                                `${(Number(value) * 100).toFixed(0)}%`,
+                                String(name),
+                              ]}
+                            />
+                            <Pie
+                              data={reactionMix}
+                              dataKey="value"
+                              nameKey="name"
+                              innerRadius={55}
+                              outerRadius={75}
+                              paddingAngle={2}
+                              stroke="rgba(148,163,184,0.2)"
+                            >
+                              <Cell fill="#22c55e" />
+                              <Cell fill="#94a3b8" />
+                              <Cell fill="#ef4444" />
+                            </Pie>
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground -mt-2">
+                        <span className="inline-flex items-center gap-2">
+                          <span className="h-2 w-2 rounded-full bg-green-500" />
+                          Positive
+                        </span>
+                        <span className="inline-flex items-center gap-2">
+                          <span className="h-2 w-2 rounded-full bg-slate-400" />
+                          Neutral
+                        </span>
+                        <span className="inline-flex items-center gap-2">
+                          <span className="h-2 w-2 rounded-full bg-red-500" />
+                          Negative
+                        </span>
+                      </div>
+                    </div>
+                  )}
 
                   {analysis.direction && (
                     <div>

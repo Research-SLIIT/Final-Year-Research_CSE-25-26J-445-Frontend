@@ -18,7 +18,7 @@ export function DirectionBadge({ direction }: DirectionBadgeProps) {
           : "bg-gray-500/20 text-gray-300"
       }`}
     >
-      {isPositive ? "📈 Bullish" : isNegative ? "📉 Bearish" : "➡️ Neutral"}
+      {isPositive ? "Positive" : isNegative ? "Negative" : "Neutral"}
     </span>
   )
 }
