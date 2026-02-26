@@ -33,7 +33,7 @@ export interface AnalyzeResponse {
 // ================= API CALL =================
 
 export async function analyzeNews(text: string): Promise<AnalyzeResponse> {
-  const res = await fetch("http://127.0.0.1:8001/analyze", {
+  const res = await fetch("http://127.0.0.1:8002/analyze", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text }),
