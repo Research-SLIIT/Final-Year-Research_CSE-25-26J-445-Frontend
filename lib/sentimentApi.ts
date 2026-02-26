@@ -13,6 +13,26 @@ export interface HistoricalExample {
   article_date?: string
 }
 
+export interface DecisionTreeStage {
+  passed?: boolean
+  description: string
+  score?: number
+  threshold?: number
+  direction?: string
+  raw_score?: number
+  confidence?: number
+  source?: string
+  triggered_rules?: string
+  weights?: Record<string, number>
+}
+
+export interface ExplanationData {
+  decision_tree: DecisionTreeStage[]
+  final_decision: string
+  final_score: number
+  model_confidence: number
+}
+
 export interface AnalyzeResponse {
   impact: "impactful" | "not_impactful"
   direction: "positive" | "negative" | null
@@ -28,6 +48,8 @@ export interface AnalyzeResponse {
     narrative?: string
     examples: HistoricalExample[] // 🔹 always array
   }
+
+  explanation?: ExplanationData
 }
 
 // ================= API CALL =================
@@ -81,5 +103,7 @@ export async function analyzeNews(text: string): Promise<AnalyzeResponse> {
           ),
         }
       : undefined,
+
+    explanation: raw.explanation,
   }
 }

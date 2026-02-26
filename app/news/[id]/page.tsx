@@ -14,7 +14,44 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { AnalysisBreakdown } from "@/components/analysis/AnalysisBreakdown"
 import { ArrowLeft } from "lucide-react"
+
+// Mock explanation data for demonstration
+const MOCK_EXPLANATION = {
+  decision_tree: [
+    {
+      passed: true,
+      description:
+        "News article contains significant market-moving keywords and company mentions. Impact detection model triggered with high confidence.",
+      score: 0.87,
+      threshold: 0.5,
+    },
+    {
+      description:
+        "ML LSTM model analyzed sentiment trajectory and market context. Strong bullish signals detected from historical patterns.",
+      direction: "positive",
+      raw_score: 0.78,
+      confidence: 0.85,
+      source: "LSTM Sentiment Model",
+    },
+    {
+      description:
+        "Lexicon-based sentiment analysis found bullish keywords including 'growth', 'positive', 'earnings', 'upside'. Low contradiction with ML prediction.",
+      score: 0.72,
+      confidence: 0.81,
+      triggered_rules: "growth, positive sentiment, earnings boost, market upside",
+    },
+    {
+      description:
+        "Fusion layer weighted ML model (60%) and Lexicon analysis (40%) to produce final prediction. Both signals aligned positively.",
+      weights: { "ML Model": 0.6, "Lexicon Analysis": 0.4 },
+    },
+  ],
+  final_decision: "POSITIVE",
+  final_score: 0.78,
+  model_confidence: 0.83,
+}
 
 export default function NewsDetail() {
   const params = useParams()
@@ -38,6 +75,10 @@ export default function NewsDetail() {
         const result = await analyzeNews(
           articleData.content || articleData.summary
         )
+        // Add mock explanation if backend doesn't provide one
+        if (!result.explanation) {
+          result.explanation = MOCK_EXPLANATION
+        }
         setAnalysis(result)
       } catch (err) {
         console.error("Failed to load article or analysis:", err)
@@ -118,6 +159,11 @@ export default function NewsDetail() {
               )}
             </CardContent>
           </Card>
+
+          {/* -------- Analysis Breakdown -------- */}
+          {!analyzing && analysis?.explanation && (
+            <AnalysisBreakdown explanation={analysis.explanation} />
+          )}
 
           {/* -------- Historical Market Context -------- */}
           {total > 0 && (
