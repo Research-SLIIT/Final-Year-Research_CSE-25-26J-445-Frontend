@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { searchTickers, type Company } from "@/lib/fakeApi"
+import { type Company } from "@/lib/fakeApi"
+import { fetchCompanies } from "@/lib/api/open-price-prediction.api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command"
@@ -19,31 +20,28 @@ export function TickerSearch({ onSelect, placeholder = "Search stocks..." }: Tic
   const [loading, setLoading] = useState(false)
   const [query, setQuery] = useState("")
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null)
+  const [allCompanies, setAllCompanies] = useState<Company[]>([])
 
-  // companies to show when search is empty
-  const exampleCompanies: Company[] = [
-    { symbol: "AAF", name: "Asia Asset Finance", sector: "Finance" },
-    { symbol: "ABL", name: "Amana Bank", sector: "Banking" },
-    { symbol: "COMB", name: "Commercial Bank of Ceylon", sector: "Banking" },
-    { symbol: "JKH", name: "John Keells Holdings", sector: "Diversified" },
-    { symbol: "LOLC", name: "LOLC Holdings", sector: "Finance" }
-  ]
+  // Fetch real company list from backend on mount
+  useEffect(() => {
+    fetchCompanies().then(list => {
+      setAllCompanies(list.map(c => ({ symbol: c.id, name: c.name, sector: '' })))
+    })
+  }, [])
 
   useEffect(() => {
-    const handleSearch = async () => {
-      if (query.length === 0) {
-        setCompanies(exampleCompanies)
-        return
-      }
-      setLoading(true)
-      const results = await searchTickers(query)
-      setCompanies(results)
-      setLoading(false)
+    if (query.length === 0) {
+      setCompanies(allCompanies)
+      return
     }
-
-    const timer = setTimeout(handleSearch, 300)
-    return () => clearTimeout(timer)
-  }, [query])
+    setLoading(true)
+    const q = query.toLowerCase()
+    const results = allCompanies.filter(
+      c => c.symbol.toLowerCase().startsWith(q) || c.name.toLowerCase().includes(q)
+    )
+    setCompanies(results)
+    setLoading(false)
+  }, [query, allCompanies])
 
   return (
     <Popover

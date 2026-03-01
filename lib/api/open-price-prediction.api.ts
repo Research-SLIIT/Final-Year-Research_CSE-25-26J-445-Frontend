@@ -125,6 +125,21 @@ function transformBackendResponse(
 }
 
 /**
+ * Fetch the list of companies available for prediction
+ */
+export async function fetchCompanies(): Promise<Array<{ id: string; name: string }>> {
+  const url = `${API_BASE_URL}/api/v1/open-price/companies`;
+  try {
+    const response = await fetch(url, { method: 'GET' });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return data.companies ?? [];
+  } catch {
+    return [];
+  }
+}
+
+/**
  * Get T+5 open price prediction for a company
  */
 export async function predictOpenPrice(
