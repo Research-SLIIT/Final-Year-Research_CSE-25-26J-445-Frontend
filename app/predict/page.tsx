@@ -496,78 +496,40 @@ export default function PredictPage() {
                         The model uses the following features:
                       </p>
                       <ul className="grid grid-cols-2 gap-2 text-muted-foreground">
-                        <li className="flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                          open_price
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                          high_price
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                          low_price
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                          close_price
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                          prev_close
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                          share_volume
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                          ret_1
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                          gap_1
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                          co_ret
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                          hl_pct
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                          log_vol
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                          ret_mean_5
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                          ret_std_5
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                          ret_mean_20
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                          ret_std_20
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                          vol_mean_20
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                          vol_std_20
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                          dow
-                        </li>
+                        {[
+                          "high_low_range",
+                          "close_open_ratio",
+                          "overnight_gap",
+                          "return_1d",
+                          "return_5d",
+                          "log_return_5d",
+                          "rsi_14",
+                          "macd",
+                          "macd_histogram",
+                          "stoch_k",
+                          "roc_5",
+                          "price_to_sma_20",
+                          "price_to_ema_10",
+                          "price_position_20d",
+                          "volatility_5d",
+                          "volatility_20d",
+                          "volatility_ratio",
+                          "volume_ratio_5",
+                          "volume_ratio_20",
+                          "log_volume",
+                          "day_of_week",
+                          "month",
+                          "price_vs_company_avg",
+                          "volume_vs_company_avg",
+                          "company_volatility",
+                          "company_price_level",
+                          "sector_N",
+                        ].map((feature) => (
+                          <li key={feature} className="flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+                            {feature}
+                          </li>
+                        ))}
                       </ul>
                     </div>
                   </AccordionContent>
