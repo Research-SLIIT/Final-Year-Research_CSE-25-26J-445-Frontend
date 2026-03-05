@@ -103,6 +103,11 @@ function transformBackendResponse(
   const predOpenTplus5 = backendResponse.pred_open_tplus5 ?? openToday;
   const asofDate = backendResponse.asof_trading_date ?? new Date().toISOString().split('T')[0];
 
+  // Compute approximate T+5 calendar date 
+  const asofDateObj = new Date(asofDate + 'T00:00:00');
+  asofDateObj.setDate(asofDateObj.getDate() + 7);
+  const predictedForDate = asofDateObj.toISOString().split('T')[0];
+
   // Generate mock chart data
   const { forecastPoints, baselinePoints, deltaPoints } = generateMockForecastData(
     openToday,
@@ -115,6 +120,7 @@ function transformBackendResponse(
   return {
     symbol: backendResponse.company_id,
     asofDate,
+    predictedForDate,
     openToday,
     predOpenTplus5,
     confidence,

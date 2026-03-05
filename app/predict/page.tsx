@@ -97,8 +97,11 @@ export default function PredictPage() {
       const snap = await getOhlcvSnapshot(inputs.symbol);
       setSnapshot(snap);
 
-      // Run prediction using API
-      const result = await predictOpenPrice(inputs.symbol);
+      // Run prediction using API — pass today's date so backend fetches current real data
+      const result = await predictOpenPrice(
+        inputs.symbol,
+        new Date().toISOString().split('T')[0]
+      );
       setOutput(result);
 
       toast({
@@ -413,15 +416,15 @@ export default function PredictPage() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-muted/50 p-4 rounded-lg">
                   <p className="text-xs text-muted-foreground mb-1">
-                    Current Date
+                    Data As Of
                   </p>
                   <p className="text-sm font-semibold">{output.asofDate}</p>
                 </div>
                 <div className="bg-muted/50 p-4 rounded-lg">
                   <p className="text-xs text-muted-foreground mb-1">
-                    Trading Days
+                    Predicted For
                   </p>
-                  <p className="text-sm font-semibold">5 Days</p>
+                  <p className="text-sm font-semibold">{output.predictedForDate}</p>
                 </div>
                 <div className="bg-muted/50 p-4 rounded-lg">
                   <p className="text-xs text-muted-foreground mb-1">

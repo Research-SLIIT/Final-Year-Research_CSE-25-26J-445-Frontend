@@ -42,6 +42,7 @@ export interface OpenPriceHealthCheckResponse {
 export interface PredictionResult {
   symbol: string;
   asofDate: string;
+  predictedForDate: string;
   openToday: number;
   predOpenTplus5: number;
   confidence: "low" | "medium" | "high";
