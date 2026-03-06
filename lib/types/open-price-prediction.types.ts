@@ -3,6 +3,35 @@
  * Backend Endpoint: GET /api/v1/open-price/predict
  */
 
+export interface ExplanationDriver {
+  feature: string;
+  display_name: string;
+  value: number;
+  shap_value: number;
+  direction: "bullish" | "bearish";
+  description: string;
+}
+
+export interface CategoryImpact {
+  total_shap: number;
+  direction: "bullish" | "bearish";
+}
+
+export interface ModelAgreement {
+  agreement_score: number;
+  per_model_predictions: Record<string, number>;
+  prediction_std: number;
+}
+
+export interface PredictionExplanation {
+  shap_values: Record<string, number>;
+  base_value: number;
+  top_drivers: ExplanationDriver[];
+  summary: string;
+  category_impacts: Record<string, CategoryImpact>;
+  model_agreement: ModelAgreement;
+}
+
 /**
  * Raw response from backend API (matches OpenPricePredictionResponseDto)
  */
@@ -15,6 +44,7 @@ export interface OpenPricePredictionBackendResponse {
   baseline_open_tplus5: number | null;
   warming_up: boolean;
   reason: string | null;
+  explanation?: PredictionExplanation;
 }
 
 /**
@@ -50,4 +80,5 @@ export interface PredictionResult {
   forecastPoints: Array<{ day: number; price: number }>;
   baselinePoints: Array<{ day: number; price: number }>;
   deltaPoints: Array<{ day: number; deltaPrice: number; deltaPct: number }>;
+  explanation?: PredictionExplanation;
 }

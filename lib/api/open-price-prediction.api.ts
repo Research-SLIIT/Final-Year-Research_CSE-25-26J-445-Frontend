@@ -84,14 +84,16 @@ function generateMockForecastData(openToday: number, predOpenTplus5: number) {
 }
 
 /**
- * Calculate confidence level based on prediction magnitude
- * Placeholder - hardcoded to "medium" per requirements
+ * Calculate confidence level from model agreement score
  */
 function calculateConfidence(
-  openToday: number,
-  predOpenTplus5: number,
+  backendResponse: OpenPricePredictionBackendResponse,
 ): "low" | "medium" | "high" {
-  return "medium";
+  const score = backendResponse.explanation?.model_agreement?.agreement_score;
+  if (score == null) return "medium";
+  if (score >= 0.85) return "high";
+  if (score >= 0.65) return "medium";
+  return "low";
 }
 
 /**
@@ -115,8 +117,8 @@ function transformBackendResponse(
   const { forecastPoints, baselinePoints, deltaPoints } =
     generateMockForecastData(openToday, predOpenTplus5);
 
-  // Calculate confidence
-  const confidence = calculateConfidence(openToday, predOpenTplus5);
+  // Calculate confidence from model agreement
+  const confidence = calculateConfidence(backendResponse);
 
   return {
     symbol: backendResponse.company_id,
@@ -129,6 +131,7 @@ function transformBackendResponse(
     forecastPoints,
     baselinePoints,
     deltaPoints,
+    explanation: backendResponse.explanation,
   };
 }
 
@@ -161,7 +164,10 @@ export async function predictOpenPrice(
   const encodedCompanyId = encodeURIComponent(normalizedId);
 
   // Build URL with query parameters
-  const params = new URLSearchParams({ company_id: encodedCompanyId });
+  const params = new URLSearchParams({
+    company_id: encodedCompanyId,
+    explain: "true",
+  });
   if (asofDate) {
     params.append("asof", asofDate);
   }

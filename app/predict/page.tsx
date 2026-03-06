@@ -44,68 +44,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import { TrendingUp, ArrowUpRight, ArrowDownRight, TrendingDown, Minus, Info } from "lucide-react";
-
-// Mock driving factors for prediction reasoning (used when API reason is unavailable)
-const generateMockDrivingFactors = (openToday: number, predOpenTplus5: number) => {
-  const isBullish = predOpenTplus5 >= openToday;
-  return [
-    {
-      factor: "RSI (14-day)",
-      value: isBullish ? "38.4 — Approaching oversold" : "67.2 — Approaching overbought",
-      impact: isBullish ? "positive" as const : "negative" as const,
-      weight: 18,
-      description: isBullish
-        ? "RSI below 40 signals potential reversal upward, supporting a higher open next week."
-        : "RSI above 65 suggests the stock is overextended, increasing downside risk at open.",
-    },
-    {
-      factor: "MACD Signal",
-      value: isBullish ? "Bullish crossover detected" : "Bearish crossover detected",
-      impact: isBullish ? "positive" as const : "negative" as const,
-      weight: 22,
-      description: isBullish
-        ? "MACD line crossed above signal line in the last 3 sessions, indicating upward momentum."
-        : "MACD line crossed below signal line, indicating weakening momentum and downside pressure.",
-    },
-    {
-      factor: "5-Day Return",
-      value: isBullish ? "+2.1% over prior 5 sessions" : "−1.8% over prior 5 sessions",
-      impact: isBullish ? "positive" as const : "negative" as const,
-      weight: 15,
-      description: isBullish
-        ? "Positive short-term return trend reinforces bullish open price forecast."
-        : "Negative short-term return suggests continued selling pressure at the open.",
-    },
-    {
-      factor: "Volume Momentum",
-      value: isBullish ? "Volume 1.4× 20-day average" : "Volume 0.7× 20-day average",
-      impact: isBullish ? "positive" as const : "neutral" as const,
-      weight: 14,
-      description: isBullish
-        ? "Above-average volume confirms conviction behind recent price movement."
-        : "Below-average volume signals weak participation; trend may not sustain.",
-    },
-    {
-      factor: "Price vs. SMA-20",
-      value: isBullish ? "3.1% above 20-day SMA" : "2.4% below 20-day SMA",
-      impact: isBullish ? "positive" as const : "negative" as const,
-      weight: 16,
-      description: isBullish
-        ? "Price trading above its 20-day moving average indicates near-term bullish bias."
-        : "Price below 20-day SMA reflects bearish short-term trend.",
-    },
-    {
-      factor: "Overnight Gap Pattern",
-      value: isBullish ? "Avg. gap fill: +0.8%" : "Avg. gap fill: −0.5%",
-      impact: isBullish ? "positive" as const : "negative" as const,
-      weight: 15,
-      description: isBullish
-        ? "Historical overnight gap behavior for this stock shows a positive opening bias."
-        : "Historical overnight gap pattern for this stock leans negative at open.",
-    },
-  ];
-};
+import { TrendingUp, ArrowUpRight, ArrowDownRight, TrendingDown, Minus, Info, BarChart3 } from "lucide-react";
 
 // Mock data generator for historical monthly open prices
 const generateMonthlyOpenPrices = (currentPrice: number) => {
@@ -386,7 +325,7 @@ export default function PredictPage() {
             </CardContent>
           </Card>
 
-          {/* Prediction Reasoning */}
+          {/* Prediction Reasoning (XAI) */}
           <Card className="bg-card border-border">
             <CardHeader>
               <div className="flex items-start justify-between gap-4">
@@ -401,144 +340,215 @@ export default function PredictPage() {
                   </CardDescription>
                 </div>
                 <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded shrink-0">
-                  Mock Data
+                  SHAP Explainability
                 </span>
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Model summary text — uses real reason from API if available, else mock */}
-              <div className="bg-muted/40 rounded-lg p-4 border border-border text-sm text-muted-foreground leading-relaxed">
-                {output.reason ?? (
-                  <>
-                    The model forecasts a{" "}
-                    <span
-                      className={
-                        output.predOpenTplus5 >= output.openToday
-                          ? "font-semibold text-green-600 dark:text-green-400"
-                          : "font-semibold text-red-600 dark:text-red-400"
-                      }
-                    >
-                      {output.predOpenTplus5 >= output.openToday
-                        ? "bullish"
-                        : "bearish"}{" "}
-                      open in 5 trading days
-                    </span>{" "}
-                    for <strong>{output.symbol}</strong>. This is primarily
-                    driven by short-term momentum indicators and volume
-                    confirmation signals. Technical oscillators suggest the
-                    current trend is likely to persist into next week's opening
-                    session, with{" "}
-                    {output.confidence === "high"
-                      ? "high"
-                      : output.confidence === "medium"
-                      ? "moderate"
-                      : "low"}{" "}
-                    model confidence.
-                  </>
-                )}
-              </div>
-
-              {/* Driving factors breakdown */}
-              <div>
-                <p className="text-sm font-medium mb-3">Key Driving Factors</p>
-                <div className="space-y-3">
-                  {generateMockDrivingFactors(
-                    output.openToday,
-                    output.predOpenTplus5
-                  ).map((item) => (
-                    <div
-                      key={item.factor}
-                      className="bg-muted/30 rounded-lg p-4 border border-border space-y-2"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          {item.impact === "positive" ? (
-                            <ArrowUpRight className="h-4 w-4 text-green-500 shrink-0" />
-                          ) : item.impact === "negative" ? (
-                            <ArrowDownRight className="h-4 w-4 text-red-500 shrink-0" />
-                          ) : (
-                            <Minus className="h-4 w-4 text-yellow-500 shrink-0" />
-                          )}
-                          <span className="text-sm font-medium">
-                            {item.factor}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3 shrink-0">
-                          <span className="text-xs text-muted-foreground">
-                            {item.value}
-                          </span>
-                          {/* Weight bar */}
-                          <div className="flex items-center gap-1">
-                            <div className="w-20 h-1.5 bg-muted rounded-full overflow-hidden">
-                              <div
-                                className={`h-full rounded-full ${
-                                  item.impact === "positive"
-                                    ? "bg-green-500"
-                                    : item.impact === "negative"
-                                    ? "bg-red-500"
-                                    : "bg-yellow-500"
-                                }`}
-                                style={{ width: `${item.weight * 4}%` }}
-                              />
-                            </div>
-                            <span className="text-xs text-muted-foreground w-8 text-right">
-                              {item.weight}%
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      <p className="text-xs text-muted-foreground pl-6">
-                        {item.description}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Impact summary */}
-              <div className="grid grid-cols-3 gap-3 pt-2 border-t border-border">
-                {[
-                  {
-                    label: "Bullish Signals",
-                    count: generateMockDrivingFactors(
-                      output.openToday,
-                      output.predOpenTplus5
-                    ).filter((f) => f.impact === "positive").length,
-                    color: "text-green-600 dark:text-green-400",
-                    bg: "bg-green-500/10",
-                  },
-                  {
-                    label: "Bearish Signals",
-                    count: generateMockDrivingFactors(
-                      output.openToday,
-                      output.predOpenTplus5
-                    ).filter((f) => f.impact === "negative").length,
-                    color: "text-red-600 dark:text-red-400",
-                    bg: "bg-red-500/10",
-                  },
-                  {
-                    label: "Neutral Signals",
-                    count: generateMockDrivingFactors(
-                      output.openToday,
-                      output.predOpenTplus5
-                    ).filter((f) => f.impact === "neutral").length,
-                    color: "text-yellow-600 dark:text-yellow-400",
-                    bg: "bg-yellow-500/10",
-                  },
-                ].map((s) => (
-                  <div
-                    key={s.label}
-                    className={`${s.bg} rounded-lg p-3 text-center`}
-                  >
-                    <p className={`text-2xl font-bold ${s.color}`}>
-                      {s.count}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {s.label}
-                    </p>
+              {output.explanation ? (
+                <>
+                  {/* AI-generated summary */}
+                  <div className="bg-muted/40 rounded-lg p-4 border border-border text-sm text-muted-foreground leading-relaxed">
+                    {output.explanation.summary}
                   </div>
-                ))}
-              </div>
+
+                  {/* Top driving factors */}
+                  <div>
+                    <p className="text-sm font-medium mb-3">Top Driving Factors</p>
+                    <div className="space-y-3">
+                      {(() => {
+                        const maxShap = Math.max(
+                          ...output.explanation!.top_drivers.map((d) => Math.abs(d.shap_value)),
+                          0.001
+                        );
+                        return output.explanation!.top_drivers.map((driver) => (
+                          <div
+                            key={driver.feature}
+                            className="bg-muted/30 rounded-lg p-4 border border-border space-y-2"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                {driver.direction === "bullish" ? (
+                                  <ArrowUpRight className="h-4 w-4 text-green-500 shrink-0" />
+                                ) : (
+                                  <ArrowDownRight className="h-4 w-4 text-red-500 shrink-0" />
+                                )}
+                                <span className="text-sm font-medium">
+                                  {driver.display_name}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-3 shrink-0">
+                                <span
+                                  className={`text-xs font-medium ${
+                                    driver.direction === "bullish"
+                                      ? "text-green-600 dark:text-green-400"
+                                      : "text-red-600 dark:text-red-400"
+                                  }`}
+                                >
+                                  {driver.direction === "bullish" ? "+" : ""}
+                                  {driver.shap_value.toFixed(4)}
+                                </span>
+                                {/* Impact bar */}
+                                <div className="flex items-center gap-1">
+                                  <div className="w-20 h-1.5 bg-muted rounded-full overflow-hidden">
+                                    <div
+                                      className={`h-full rounded-full ${
+                                        driver.direction === "bullish"
+                                          ? "bg-green-500"
+                                          : "bg-red-500"
+                                      }`}
+                                      style={{
+                                        width: `${(Math.abs(driver.shap_value) / maxShap) * 100}%`,
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            <p className="text-xs text-muted-foreground pl-6">
+                              {driver.description}
+                            </p>
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  </div>
+
+                  {/* Signal counts */}
+                  <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border">
+                    {[
+                      {
+                        label: "Bullish Signals",
+                        count: output.explanation.top_drivers.filter(
+                          (d) => d.direction === "bullish"
+                        ).length,
+                        color: "text-green-600 dark:text-green-400",
+                        bg: "bg-green-500/10",
+                      },
+                      {
+                        label: "Bearish Signals",
+                        count: output.explanation.top_drivers.filter(
+                          (d) => d.direction === "bearish"
+                        ).length,
+                        color: "text-red-600 dark:text-red-400",
+                        bg: "bg-red-500/10",
+                      },
+                    ].map((s) => (
+                      <div
+                        key={s.label}
+                        className={`${s.bg} rounded-lg p-3 text-center`}
+                      >
+                        <p className={`text-2xl font-bold ${s.color}`}>
+                          {s.count}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {s.label}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Category Impacts */}
+                  <div className="pt-2 border-t border-border">
+                    <p className="text-sm font-medium mb-3 flex items-center gap-2">
+                      <BarChart3 className="h-4 w-4" />
+                      Category Impact Breakdown
+                    </p>
+                    <div className="space-y-2">
+                      {(() => {
+                        const categories = Object.entries(output.explanation!.category_impacts);
+                        const maxCatShap = Math.max(
+                          ...categories.map(([, c]) => Math.abs(c.total_shap)),
+                          0.001
+                        );
+                        return categories.map(([category, impact]) => (
+                          <div key={category} className="flex items-center gap-3">
+                            <span className="text-xs font-medium w-28 shrink-0 text-right">
+                              {category}
+                            </span>
+                            <div className="flex-1 flex items-center gap-2">
+                              <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden relative">
+                                <div
+                                  className={`h-full rounded-full ${
+                                    impact.direction === "bullish"
+                                      ? "bg-green-500"
+                                      : "bg-red-500"
+                                  }`}
+                                  style={{
+                                    width: `${(Math.abs(impact.total_shap) / maxCatShap) * 100}%`,
+                                  }}
+                                />
+                              </div>
+                              <span
+                                className={`text-xs font-medium w-16 shrink-0 ${
+                                  impact.direction === "bullish"
+                                    ? "text-green-600 dark:text-green-400"
+                                    : "text-red-600 dark:text-red-400"
+                                }`}
+                              >
+                                {impact.direction === "bullish" ? "+" : ""}
+                                {impact.total_shap.toFixed(4)}
+                              </span>
+                            </div>
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  </div>
+
+                  {/* Model Agreement */}
+                  <div className="pt-2 border-t border-border">
+                    <p className="text-sm font-medium mb-3">Model Agreement</p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div className="bg-muted/50 p-3 rounded-lg text-center">
+                        <p className="text-xs text-muted-foreground mb-1">
+                          Agreement Score
+                        </p>
+                        <p
+                          className={`text-xl font-bold ${
+                            output.explanation.model_agreement.agreement_score >= 0.85
+                              ? "text-green-600 dark:text-green-400"
+                              : output.explanation.model_agreement.agreement_score >= 0.65
+                              ? "text-yellow-600 dark:text-yellow-400"
+                              : "text-red-600 dark:text-red-400"
+                          }`}
+                        >
+                          {(output.explanation.model_agreement.agreement_score * 100).toFixed(1)}%
+                        </p>
+                      </div>
+                      {Object.entries(
+                        output.explanation.model_agreement.per_model_predictions
+                      ).map(([model, pred]) => (
+                        <div
+                          key={model}
+                          className="bg-muted/50 p-3 rounded-lg text-center"
+                        >
+                          <p className="text-xs text-muted-foreground mb-1 capitalize">
+                            {model}
+                          </p>
+                          <p
+                            className={`text-sm font-semibold ${
+                              pred > 0
+                                ? "text-green-600 dark:text-green-400"
+                                : "text-red-600 dark:text-red-400"
+                            }`}
+                          >
+                            {pred > 0 ? "+" : ""}
+                            {(pred * 100).toFixed(2)}%
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Info className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">
+                    Explanation unavailable for this prediction.
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
