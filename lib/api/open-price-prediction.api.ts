@@ -7,11 +7,12 @@ import {
   OpenPricePredictionBackendResponse,
   OpenPriceHealthCheckResponse,
   PredictionResult,
-} from '@/lib/types/open-price-prediction.types';
-import { normalizeSymbol } from '@/lib/utils';
+} from "@/lib/types/open-price-prediction.types";
+import { normalizeSymbol } from "@/lib/utils";
 
 // API base URL - configured via environment variable
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3400';
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3400";
 
 /**
  * Check health of the open price prediction service
@@ -21,16 +22,17 @@ export async function checkOpenPriceServiceHealth(): Promise<OpenPriceHealthChec
 
   try {
     const response = await fetch(url, {
-      method: 'GET',
+      method: "GET",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(
-        errorData.message || `Health check failed: ${response.status} ${response.statusText}`
+        errorData.message ||
+          `Health check failed: ${response.status} ${response.statusText}`,
       );
     }
 
@@ -39,7 +41,7 @@ export async function checkOpenPriceServiceHealth(): Promise<OpenPriceHealthChec
     if (error instanceof Error) {
       throw error;
     }
-    throw new Error('An unexpected error occurred during health check');
+    throw new Error("An unexpected error occurred during health check");
   }
 }
 
@@ -68,7 +70,7 @@ function generateMockForecastData(openToday: number, predOpenTplus5: number) {
     } else {
       // Days 6-7: slight continuation of trend
       const trend = predOpenTplus5 - openToday;
-      forecastPrice = predOpenTplus5 + (trend * 0.1 * (day - 5));
+      forecastPrice = predOpenTplus5 + trend * 0.1 * (day - 5);
     }
     forecastPoints.push({ day, price: forecastPrice });
 
@@ -87,7 +89,7 @@ function generateMockForecastData(openToday: number, predOpenTplus5: number) {
  */
 function calculateConfidence(
   openToday: number,
-  predOpenTplus5: number
+  predOpenTplus5: number,
 ): "low" | "medium" | "high" {
   return "medium";
 }
@@ -96,23 +98,22 @@ function calculateConfidence(
  * Transform backend response to frontend-friendly format
  */
 function transformBackendResponse(
-  backendResponse: OpenPricePredictionBackendResponse
+  backendResponse: OpenPricePredictionBackendResponse,
 ): PredictionResult {
   // Handle null values with fallbacks
   const openToday = backendResponse.open_today ?? 0;
   const predOpenTplus5 = backendResponse.pred_open_tplus5 ?? openToday;
-  const asofDate = backendResponse.asof_trading_date ?? new Date().toISOString().split('T')[0];
+  const asofDate =
+    backendResponse.asof_trading_date ?? new Date().toISOString().split("T")[0];
 
-  // Compute approximate T+5 calendar date 
-  const asofDateObj = new Date(asofDate + 'T00:00:00');
+  // Compute approximate T+5 calendar date
+  const asofDateObj = new Date(asofDate + "T00:00:00");
   asofDateObj.setDate(asofDateObj.getDate() + 7);
-  const predictedForDate = asofDateObj.toISOString().split('T')[0];
+  const predictedForDate = asofDateObj.toISOString().split("T")[0];
 
   // Generate mock chart data
-  const { forecastPoints, baselinePoints, deltaPoints } = generateMockForecastData(
-    openToday,
-    predOpenTplus5
-  );
+  const { forecastPoints, baselinePoints, deltaPoints } =
+    generateMockForecastData(openToday, predOpenTplus5);
 
   // Calculate confidence
   const confidence = calculateConfidence(openToday, predOpenTplus5);
@@ -124,6 +125,7 @@ function transformBackendResponse(
     openToday,
     predOpenTplus5,
     confidence,
+    reason: backendResponse.reason ?? null,
     forecastPoints,
     baselinePoints,
     deltaPoints,
@@ -133,10 +135,12 @@ function transformBackendResponse(
 /**
  * Fetch the list of companies available for prediction
  */
-export async function fetchCompanies(): Promise<Array<{ id: string; name: string }>> {
+export async function fetchCompanies(): Promise<
+  Array<{ id: string; name: string }>
+> {
   const url = `${API_BASE_URL}/api/v1/open-price/companies`;
   try {
-    const response = await fetch(url, { method: 'GET' });
+    const response = await fetch(url, { method: "GET" });
     if (!response.ok) return [];
     const data = await response.json();
     return data.companies ?? [];
@@ -150,7 +154,7 @@ export async function fetchCompanies(): Promise<Array<{ id: string; name: string
  */
 export async function predictOpenPrice(
   companyId: string,
-  asofDate?: string
+  asofDate?: string,
 ): Promise<PredictionResult> {
   // Normalize symbol (removes .N0000 suffix if present)
   const normalizedId = normalizeSymbol(companyId);
@@ -159,16 +163,16 @@ export async function predictOpenPrice(
   // Build URL with query parameters
   const params = new URLSearchParams({ company_id: encodedCompanyId });
   if (asofDate) {
-    params.append('asof', asofDate);
+    params.append("asof", asofDate);
   }
 
   const url = `${API_BASE_URL}/api/v1/open-price/predict?${params.toString()}`;
 
   try {
     const response = await fetch(url, {
-      method: 'GET',
+      method: "GET",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     });
 
@@ -181,19 +185,23 @@ export async function predictOpenPrice(
       }
 
       if (response.status === 503) {
-        throw new Error('ML model is warming up. Please try again in a few moments.');
+        throw new Error(
+          "ML model is warming up. Please try again in a few moments.",
+        );
       }
 
       throw new Error(
-        errorData.message || `Prediction failed: ${response.status} ${response.statusText}`
+        errorData.message ||
+          `Prediction failed: ${response.status} ${response.statusText}`,
       );
     }
 
-    const backendData: OpenPricePredictionBackendResponse = await response.json();
+    const backendData: OpenPricePredictionBackendResponse =
+      await response.json();
 
     // Check if service is warming up
     if (backendData.warming_up) {
-      throw new Error(backendData.reason || 'Service is warming up');
+      throw new Error(backendData.reason || "Service is warming up");
     }
 
     // Transform and return
@@ -202,6 +210,6 @@ export async function predictOpenPrice(
     if (error instanceof Error) {
       throw error;
     }
-    throw new Error('An unexpected error occurred while fetching prediction');
+    throw new Error("An unexpected error occurred while fetching prediction");
   }
 }

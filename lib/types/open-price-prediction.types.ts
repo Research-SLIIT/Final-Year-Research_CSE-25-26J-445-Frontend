@@ -36,7 +36,7 @@ export interface OpenPriceHealthCheckResponse {
 }
 
 /**
- * Frontend-friendly prediction result 
+ * Frontend-friendly prediction result
  * Combines real backend data with client-generated mock data for visualizations
  */
 export interface PredictionResult {
@@ -46,6 +46,7 @@ export interface PredictionResult {
   openToday: number;
   predOpenTplus5: number;
   confidence: "low" | "medium" | "high";
+  reason: string | null;
   forecastPoints: Array<{ day: number; price: number }>;
   baselinePoints: Array<{ day: number; price: number }>;
   deltaPoints: Array<{ day: number; deltaPrice: number; deltaPct: number }>;
