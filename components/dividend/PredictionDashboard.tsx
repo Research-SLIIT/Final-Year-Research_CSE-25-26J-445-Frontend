@@ -144,7 +144,7 @@ export default function PredictionDashboard({ data, firm, year, glossary }: Pred
       return (
         <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200 z-50">
           <p className="font-semibold text-gray-900">{payload[0].payload.name}</p>
-          <p className="text-sm" style={{ color: payload[0].color }}>
+          <p className="text-sm text-gray-700">
             Impact: {percentValue}%
           </p>
         </div>
@@ -307,14 +307,14 @@ export default function PredictionDashboard({ data, firm, year, glossary }: Pred
             </div>
             <ChartCard
               title="Company Financial Metrics Impact"
-              description="How company financial health metrics influence dividend risk"
+              // description="How company financial health metrics influence dividend risk"
             >
               <div style={{ width: '100%', height: '400px' }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={financialFactors} layout="vertical" margin={{ left: 180, right: 30, top: 20, bottom: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
+                  <BarChart data={financialFactors} layout="vertical" margin={{ left: 60, right: 30, top: 20, bottom: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} vertical={true} />
                     <XAxis type="number" />
-                    <YAxis dataKey="name" type="category" width={170} tick={{ fontSize: 11 }} />
+                    <YAxis dataKey="name" type="category" width={10} tick={{ fontSize: 11 }} />
                     <Tooltip content={<CustomTooltip />} />
                     <Bar dataKey="impact" radius={[0, 4, 4, 0]}>
                       {financialFactors.map((entry, i) => <Cell key={i} fill={entry.impact < 0 ? '#10b981' : '#ff0000'} />)}
@@ -370,7 +370,7 @@ export default function PredictionDashboard({ data, firm, year, glossary }: Pred
               <Shield className="w-5 h-5 text-purple-600" />
               <CardTitle>AI-Powered Analysis</CardTitle>
             </div>
-            <CardDescription>Machine learning insights and predicted outcomes</CardDescription>
+            <CardDescription>Powerd by OpenAI GPT 4o</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Predicted Dividend & Confidence */}
