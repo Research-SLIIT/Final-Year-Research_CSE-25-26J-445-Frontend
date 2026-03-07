@@ -53,6 +53,8 @@ export interface DividendPredictionResult {
 }
 
 
+// API base URL - can be configured via environment variable
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3400/api/v1/dividend-prediction/';
 
 export const predictDividend = async (
   symbol: string
@@ -78,7 +80,7 @@ export const llm_exp = async (
 export const fetchDataFromBackend = async (symbol: string, year: number = 2025): Promise<DividendPredictionResult> => {
   try {
     console.log("symbol", symbol);
-    const response = await fetch(`http://localhost:8001/data?firm=${encodeURIComponent(symbol)}&year=${year}`, {
+    const response = await fetch(`${API_BASE_URL}data?firm=${encodeURIComponent(symbol)}&year=${year}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -101,7 +103,7 @@ export const fetchDataFromBackend = async (symbol: string, year: number = 2025):
 
 export const fetchDataFromBackend_llm = async (symbol: string, year: number = 2025): Promise<DividendPredictionResult> => {
   try {
-    const url = `http://localhost:8001/llm_call?firm=${encodeURIComponent(symbol)}&year=${year}`;
+    const url = `${API_BASE_URL}llm-explanation?firm=${encodeURIComponent(symbol)}&year=${year}`;
     const response = await fetch(url, {
       method: 'GET',
       headers: {
@@ -126,7 +128,7 @@ import { GlossaryMap } from '@/lib/types/dividend/glossary';
 
 export async function fetchGlossary(): Promise<GlossaryMap> {
   try {
-    const res = await fetch('http://localhost:8001/api/metadata/glossary');
+    const res = await fetch(`${API_BASE_URL}metadata/glossary`);
     const json = await res.json();
     
     if (json.status === 'success' && json.data) {
@@ -171,7 +173,7 @@ export interface HistoricalDividendData {
 
 export const fetchHistoricalDividendData = async (symbol: string): Promise<HistoricalDividendData> => {
   try {
-    const response = await fetch(`http://localhost:8001/history?firm=${encodeURIComponent(symbol)}`, {
+    const response = await fetch(`${API_BASE_URL}history?firm=${encodeURIComponent(symbol)}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
