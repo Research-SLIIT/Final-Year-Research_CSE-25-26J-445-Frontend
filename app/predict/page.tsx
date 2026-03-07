@@ -46,33 +46,37 @@ import {
 } from "recharts";
 import { TrendingUp, ArrowUpRight, ArrowDownRight, TrendingDown, Minus, Info, BarChart3 } from "lucide-react";
 
-// Mock data generator for historical monthly open prices
-const generateMonthlyOpenPrices = (currentPrice: number) => {
-  const months = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
-  ];
-  return months.map((month, index) => ({
-    month,
-    openPrice: currentPrice + (Math.random() * 200 - 100) + index * 5,
-  }));
+// Mock data generator for historical daily open prices (last 90 trading days)
+const generateDailyOpenPrices = (currentPrice: number) => {
+  const days = 90;
+  const result = [];
+  let price = currentPrice * 0.9;
+  for (let i = days; i >= 0; i--) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    // skip weekends
+    if (date.getDay() === 0 || date.getDay() === 6) continue;
+    price = price + (Math.random() * 6 - 2.5);
+    result.push({
+      date: date.toLocaleDateString("en-GB", { day: "2-digit", month: "short" }),
+      openPrice: parseFloat(price.toFixed(2)),
+    });
+  }
+  return result;
+};
+
+const TIME_RANGE_DAYS: Record<string, number> = {
+  "1week": 5,
+  "2weeks": 10,
+  "3weeks": 15,
+  "4weeks": 22,
 };
 
 export default function PredictPage() {
   const { inputs, output, loading, setInputs, setOutput, setLoading } =
     usePredictStore();
   const [snapshot, setSnapshot] = useState<OhlcvSnapshot | null>(null);
-  const [timeRange, setTimeRange] = useState<string>("12months");
+  const [timeRange, setTimeRange] = useState<string>("4weeks");
   const { toast } = useToast();
 
   const handleSearch = (company: any) => {
@@ -557,7 +561,7 @@ export default function PredictPage() {
             <CardHeader>
               <CardTitle>Historical Open Price Trend</CardTitle>
               <CardDescription>
-                Monthly open price changes over time
+                Daily open price changes over the selected period
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -571,9 +575,10 @@ export default function PredictPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="6months">Last 6 Months</SelectItem>
-                    <SelectItem value="12months">Last 12 Months</SelectItem>
-                    <SelectItem value="24months">Last 24 Months</SelectItem>
+                    <SelectItem value="1week">1 Week</SelectItem>
+                    <SelectItem value="2weeks">2 Weeks</SelectItem>
+                    <SelectItem value="3weeks">3 Weeks</SelectItem>
+                    <SelectItem value="4weeks">4 Weeks (1 Month)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -582,7 +587,9 @@ export default function PredictPage() {
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart
-                    data={generateMonthlyOpenPrices(output.openToday)}
+                    data={generateDailyOpenPrices(output.openToday).slice(
+                      -TIME_RANGE_DAYS[timeRange]
+                    )}
                     margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                   >
                     <CartesianGrid
@@ -590,10 +597,12 @@ export default function PredictPage() {
                       stroke="var(--color-muted)"
                     />
                     <XAxis
-                      dataKey="month"
+                      dataKey="date"
                       stroke="var(--color-muted-foreground)"
+                      tick={{ fontSize: 11 }}
+                      interval="preserveStartEnd"
                       label={{
-                        value: "Month",
+                        value: "Date",
                         position: "insideBottom",
                         offset: -5,
                       }}
