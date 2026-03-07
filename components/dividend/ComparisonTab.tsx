@@ -178,7 +178,7 @@ export function ComparisonTab({
                     }
                     margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
                   >
-                    <CartesianGrid />
+                    <CartesianGrid horizontal={true} vertical={false} />
                     <XAxis dataKey="Year" />
                     <YAxis label={{ value: comparisonSelectedMetric === "Total Equity" ? "Ratio" : "Percentage (%)", angle: -90, position: "insideLeft" }} />
                     <RechartsTooltip 

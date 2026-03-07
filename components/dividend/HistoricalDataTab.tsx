@@ -15,7 +15,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts"
-import { type HistoricalDividendData } from "@/lib/fakeApi"
+import { type HistoricalDividendData } from "@/lib/api/dividend_api"
 
 interface HistoricalDataTabProps {
   loading: boolean
@@ -70,6 +70,8 @@ export function HistoricalDataTab({
               <CardTitle>{historicalData.firm}</CardTitle>
               <CardDescription>
                 Financial data from {historicalData.start_year} to {historicalData.end_year}
+                <br />
+                All Values are in LKR Thousands
               </CardDescription>
             </CardHeader>
             <CardContent className="overflow-x-auto">
@@ -105,7 +107,7 @@ export function HistoricalDataTab({
                     return (
                       <tr key={record.Year} className="border-b hover:bg-muted/50">
                         <td className="py-3 px-4 font-medium">{record.Year}</td>
-                        <td className="text-right py-3 px-4">{(record.Revenue / 1e3).toFixed(2)}K</td>
+                        <td className="text-right py-3 px-4">{(record.Revenue / 1e3).toFixed(2)}</td>
                         <td className="text-right py-3 px-4">
                           {revenueChange !== null ? (
                             <span className={revenueChange >= 0 ? "text-green-600" : "text-red-600"}>
@@ -115,8 +117,8 @@ export function HistoricalDataTab({
                             "-"
                           )}
                         </td>
-                        <td className="text-right py-3 px-4">{(record.EBIT / 1e3).toFixed(2)}K</td>
-                        <td className="text-right py-3 px-4">{(record["Profit After Tax"] / 1e3).toFixed(2)}K</td>
+                        <td className="text-right py-3 px-4">{(record.EBIT / 1e3).toFixed(2)}</td>
+                        <td className="text-right py-3 px-4">{(record["Profit After Tax"] / 1e3).toFixed(2)}</td>
                         <td className="text-right py-3 px-4">
                           {patChange !== null ? (
                             <span className={patChange >= 0 ? "text-green-600" : "text-red-600"}>
@@ -126,7 +128,7 @@ export function HistoricalDataTab({
                             "-"
                           )}
                         </td>
-                        <td className="text-right py-3 px-4">{(record["Dividends Paid"] / 1e3).toFixed(2)}K</td>
+                        <td className="text-right py-3 px-4">{(record["Dividends Paid"] / 1e3).toFixed(2)}</td>
                         <td className="text-right py-3 px-4">
                           {dividendChange !== null ? (
                             <span className={dividendChange >= 0 ? "text-green-600" : "text-red-600"}>
@@ -136,8 +138,8 @@ export function HistoricalDataTab({
                             record["Dividends Paid"] === 0 ? "No dividend" : "-"
                           )}
                         </td>
-                        <td className="text-right py-3 px-4">{(record["Total Equity"] / 1e3).toFixed(2)}K</td>
-                        <td className="text-right py-3 px-4">{(record["Net Cash from Operating Activities"] / 1e3).toFixed(2)}K</td>
+                        <td className="text-right py-3 px-4">{(record["Total Equity"] / 1e3).toFixed(2)}</td>
+                        <td className="text-right py-3 px-4">{(record["Net Cash from Operating Activities"] / 1e3).toFixed(2)}</td>
                       </tr>
                     )
                   })}
@@ -157,19 +159,19 @@ export function HistoricalDataTab({
             <Card className="bg-card border-border">
               <CardContent className="pt-6">
                 <p className="text-sm text-muted-foreground">Latest Dividends Paid</p>
-                <p className="text-2xl font-bold">{(historicalData.records[0]["Dividends Paid"] / 1e3).toFixed(2)}K</p>
+                <p className="text-2xl font-bold">{(historicalData.records[0]["Dividends Paid"] / 1e3).toFixed(2)}</p>
               </CardContent>
             </Card>
             <Card className="bg-card border-border">
               <CardContent className="pt-6">
                 <p className="text-sm text-muted-foreground">Latest Revenue</p>
-                <p className="text-2xl font-bold">{(historicalData.records[0].Revenue / 1e3).toFixed(2)}K</p>
+                <p className="text-2xl font-bold">{(historicalData.records[0].Revenue / 1e3).toFixed(2)}</p>
               </CardContent>
             </Card>
             <Card className="bg-card border-border">
               <CardContent className="pt-6">
                 <p className="text-sm text-muted-foreground">Latest Equity</p>
-                <p className="text-2xl font-bold">{(historicalData.records[0]["Total Equity"] / 1e3).toFixed(2)}K</p>
+                <p className="text-2xl font-bold">{(historicalData.records[0]["Total Equity"] / 1e3).toFixed(2)}</p>
               </CardContent>
             </Card>
           </div>
@@ -232,22 +234,22 @@ export function HistoricalDataTab({
                     }
                     margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
                   >
-                    <CartesianGrid />
+                    <CartesianGrid horizontal={true} vertical={false} />
                     <XAxis dataKey="Year" />
-                    <YAxis label={{ value: "Amount (Thousands)", angle: -90, position: "insideLeft" }} />
+                    <YAxis label={{ value: "", angle: -90, position: "insideLeft" }} />
                     <RechartsTooltip 
                       formatter={(value) => typeof value === 'number' ? `${value.toFixed(2)}K` : value}
                       labelFormatter={(label) => `Year: ${label}`}
                     />
                     <Legend />
-                    {selectedMetrics.has("Revenue") && <Line type="monotone" dataKey="Revenue" stroke="#ef4444" dotFill="#ef4444" />}
-                    {selectedMetrics.has("EBIT") && <Line type="monotone" dataKey="EBIT" stroke="#f97316" dotFill="#f97316" />}
-                    {selectedMetrics.has("Profit After Tax") && <Line type="monotone" dataKey="Profit After Tax" stroke="#eab308" dotFill="#eab308" />}
-                    {selectedMetrics.has("Dividends Paid") && <Line type="monotone" dataKey="Dividends Paid" stroke="#22c55e" dotFill="#22c55e" strokeWidth={2} />}
-                    {selectedMetrics.has("Total Equity") && <Line type="monotone" dataKey="Total Equity" stroke="#3b82f6" dotFill="#3b82f6" />}
-                    {selectedMetrics.has("Net Cash from Operating Activities") && <Line type="monotone" dataKey="Operating Cash Flow" stroke="#8b5cf6" dotFill="#8b5cf6" />}
-                    {selectedMetrics.has("Current Assets") && <Line type="monotone" dataKey="Current Assets" stroke="#06b6d4" dotFill="#06b6d4" strokeDasharray="5 5" />}
-                    {selectedMetrics.has("Non-Current Assets") && <Line type="monotone" dataKey="Non-Current Assets" stroke="#ec4899" dotFill="#ec4899" strokeDasharray="5 5" />}
+                    {selectedMetrics.has("Revenue") && <Line type="monotone" dataKey="Revenue" stroke="#ef4444"  />}
+                    {selectedMetrics.has("EBIT") && <Line type="monotone" dataKey="EBIT" stroke="#f97316"  />}
+                    {selectedMetrics.has("Profit After Tax") && <Line type="monotone" dataKey="Profit After Tax" stroke="#eab308"  />}
+                    {selectedMetrics.has("Dividends Paid") && <Line type="monotone" dataKey="Dividends Paid" stroke="#22c55e"  strokeWidth={2} />}
+                    {selectedMetrics.has("Total Equity") && <Line type="monotone" dataKey="Total Equity" stroke="#3b82f6"  />}
+                    {selectedMetrics.has("Net Cash from Operating Activities") && <Line type="monotone" dataKey="Operating Cash Flow" stroke="#8b5cf6" />}
+                    {selectedMetrics.has("Current Assets") && <Line type="monotone" dataKey="Current Assets" stroke="#06b6d4"  strokeDasharray="5 5" />}
+                    {selectedMetrics.has("Non-Current Assets") && <Line type="monotone" dataKey="Non-Current Assets" stroke="#ec4899"  strokeDasharray="5 5" />}
                   </LineChart>
                 </ResponsiveContainer>
               </div>

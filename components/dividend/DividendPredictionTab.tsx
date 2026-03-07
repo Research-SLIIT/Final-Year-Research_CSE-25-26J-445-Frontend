@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { TickerSearchDIV } from "@/components/ticker-search_div"
 import PredictionDashboard from '@/components/dividend/PredictionDashboard'
-import { type HistoricalDividendData } from "@/lib/fakeApi"
 import { GlossaryMap } from "@/lib/types/dividend/glossary"
 
 interface DividendPredictionTabProps {

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import Latex from './Latex'; // <--- UPDATED IMPORT
+import Latex from './Latex'; // 
 import { GlossaryComponent, GlossaryMap } from '@/lib/types/dividend/glossary'; 
 
 interface ModalProps {
