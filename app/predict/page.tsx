@@ -227,14 +227,14 @@ export default function PredictPage() {
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">LKR</p>
                 </div>
-                <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 p-5 rounded-lg border border-green-500/30">
+                <div className={`p-5 rounded-lg border ${output.predOpenTplus5 >= output.openToday ? 'bg-gradient-to-br from-green-500/20 to-emerald-500/20 border-green-500/30' : 'bg-gradient-to-br from-red-500/20 to-rose-500/20 border-red-500/30'}`}>
                   <p className="text-sm text-muted-foreground mb-2">
                     Predicted Open (Day 5)
                   </p>
-                  <p className="text-3xl font-bold text-green-600 dark:text-green-400">
+                  <p className={`text-3xl font-bold ${output.predOpenTplus5 >= output.openToday ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                     {output.predOpenTplus5.toFixed(2)}
                   </p>
-                  <p className="text-sm font-medium text-green-600 dark:text-green-400 mt-2 flex items-center gap-1">
+                  <p className={`text-sm font-medium mt-2 flex items-center gap-1 ${output.predOpenTplus5 >= output.openToday ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                     {output.predOpenTplus5 > output.openToday ? (
                       <ArrowUpRight className="h-4 w-4" />
                     ) : (
@@ -317,7 +317,7 @@ export default function PredictPage() {
                     />
                     <Bar dataKey="value" radius={[8, 8, 0, 0]}>
                       <Cell fill="#3b82f6" />
-                      <Cell fill="#22c55e" />
+                      <Cell fill={output.predOpenTplus5 >= output.openToday ? "#22c55e" : "#ef4444"} />
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
