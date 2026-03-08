@@ -5,6 +5,15 @@ import { useParams, useRouter } from "next/navigation"
 
 import { newsGetById, type NewsArticle } from "@/lib/fakeApi"
 import { analyzeNews, type AnalyzeResponse } from "@/lib/sentimentApi"
+import companiesData from "@/data/mock/companies.json"
+
+function getCompanySector(ticker: string) {
+  const baseSymbol = ticker.split(".")[0];
+  const company = companiesData.companies.find((c: any) => c.symbol === baseSymbol);
+  return company?.sector && company.sector !== "Unknown"
+    ? company.sector
+    : "Corporate";
+}
 
 import { Button } from "@/components/ui/button"
 import {
@@ -39,6 +48,7 @@ export default function NewsDetail() {
   const [analysis, setAnalysis] = useState<AnalyzeResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [analyzing, setAnalyzing] = useState(false)
+  const [hoveredExampleIndex, setHoveredExampleIndex] = useState<number | null>(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -191,7 +201,17 @@ export default function NewsDetail() {
                 {/* ===== Historical reaction mini-chart ===== */}
                 <div className="h-40 w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData}>
+                    <BarChart 
+                      data={chartData}
+                      onMouseMove={(state: any) => {
+                        if (state?.isTooltipActive && state?.activeTooltipIndex !== undefined) {
+                          setHoveredExampleIndex(state.activeTooltipIndex);
+                        } else {
+                          setHoveredExampleIndex(null);
+                        }
+                      }}
+                      onMouseLeave={() => setHoveredExampleIndex(null)}
+                    >
                       <XAxis dataKey="name" hide />
                       <YAxis
                         tickFormatter={(value) => `${value}%`}
@@ -225,7 +245,11 @@ export default function NewsDetail() {
                 {examples.map((ex, idx) => (
                   <div
                     key={idx}
-                    className="p-4 rounded-lg border border-border bg-muted/30"
+                    className={`p-4 rounded-lg border transition-all duration-300 ${
+                      hoveredExampleIndex === idx 
+                        ? 'bg-blue-500/10 border-blue-500/50 scale-[1.02] shadow-sm shadow-blue-500/10' 
+                        : 'bg-muted/30 border-border'
+                    }`}
                   >
                     <div className="flex justify-between items-start gap-4">
                       <div>
@@ -436,6 +460,65 @@ export default function NewsDetail() {
               )}
             </CardContent>
           </Card>
+
+          {/* -------- Identified Companies -------- */}
+          {!analyzing && analysis && analysis.identified_companies && analysis.identified_companies.length > 0 && (
+            <Card className="mt-6 border-blue-500/20 bg-blue-500/5 overflow-hidden relative">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+                  Identified Entities
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {analysis.identified_companies.map((company, idx) => (
+                  <div key={idx} className="flex flex-col gap-3 p-4 rounded-xl bg-background/60 border border-border/50 hover:bg-background/90 transition-all hover:shadow-md hover:border-blue-500/30 group">
+                    <div className="flex items-start gap-4">
+                      {/* Generative Logo Avatar */}
+                      <div className="relative h-12 w-12 shrink-0 rounded-full overflow-hidden border-2 border-background shadow-sm shadow-blue-500/20 group-hover:scale-105 transition-transform">
+                        <img 
+                          src={`https://ui-avatars.com/api/?name=${encodeURIComponent(company.company_name)}&background=2563eb&color=fff&size=100&bold=true&font-size=0.4`} 
+                          alt={company.company_name}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                      
+                      <div className="flex-1 min-w-0 flex flex-col justify-center mt-0.5">
+                        <p className="text-sm font-semibold truncate text-foreground group-hover:text-blue-400 transition-colors" title={company.company_name}>
+                          {company.company_name}
+                        </p>
+                        
+                        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                          <Badge variant="secondary" className="text-[10px] px-2 py-0 h-5 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 font-mono border-blue-500/20">
+                            {company.ticker}
+                          </Badge>
+                          <div className="w-1 h-1 rounded-full bg-border" />
+                          <span className="text-[11px] text-muted-foreground font-medium">
+                            {getCompanySector(company.ticker)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Animated Confidence Meter */}
+                    <div className="mt-2 space-y-1.5">
+                      <div className="flex justify-between items-center text-[10.5px] font-medium text-muted-foreground">
+                        <span>Extraction Confidence Match</span>
+                        <span className="text-blue-400 group-hover:text-blue-300 transition-colors">{(company.confidence).toFixed(0)}%</span>
+                      </div>
+                      <div className="h-2 w-full bg-slate-800/50 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-blue-600 to-indigo-400 rounded-full transition-all duration-[1500ms] ease-out" 
+                          style={{ width: `${company.confidence}%` }} 
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>
