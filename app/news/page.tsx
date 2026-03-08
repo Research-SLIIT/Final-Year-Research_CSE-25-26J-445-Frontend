@@ -12,6 +12,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { ChevronRight } from "lucide-react"
+import { MarketSentimentPulse } from "@/components/news/MarketSentimentPulse"
 
 export default function News() {
   const [articles, setArticles] = useState<NewsArticle[]>([])
@@ -60,6 +61,11 @@ export default function News() {
 
       {/* ================= ANALYZE CUSTOM NEWS ================= */}
       <AnalyzeBox />
+
+      {/* ================= MARKET PULSE SPARKLINE ================= */}
+      {!loading && articles.length > 0 && (
+        <MarketSentimentPulse articles={articles} />
+      )}
 
       {/* ================= SEARCH & FILTERS ================= */}
       <Card className="bg-card border-border">
@@ -171,7 +177,11 @@ export default function News() {
                           <span>
                             {new Date(
                               article.publishedDate
-                            ).toLocaleDateString()}
+                            ).toLocaleDateString("en-US", {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            })}
                           </span>
                         </div>
                       </div>

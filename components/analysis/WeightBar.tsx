@@ -3,10 +3,13 @@
 interface WeightBarProps {
   weights?: Record<string, number> | null
   finalScore: number
+  finalDecision?: string
 }
 
-export function WeightBar({ weights, finalScore }: WeightBarProps) {
-  const isPositive = finalScore >= 0
+export function WeightBar({ weights, finalScore, finalDecision }: WeightBarProps) {
+  const decision = (finalDecision ?? "").toLowerCase()
+  const isPositive = decision === "positive"
+  const isNegative = decision === "negative"
   const weightEntries = weights ? Object.entries(weights) : []
 
   if (!weights || weightEntries.length === 0) {
@@ -20,7 +23,7 @@ export function WeightBar({ weights, finalScore }: WeightBarProps) {
           <span className="weight-label">{source}</span>
           <div className="weight-bar">
             <div
-              className="weight-fill"
+              className={`weight-fill ${isNegative ? "weight-fill-negative" : isPositive ? "weight-fill-positive" : ""}`}
               style={{ width: `${Math.min(weight * 100, 100)}%` }}
             />
           </div>
@@ -28,10 +31,12 @@ export function WeightBar({ weights, finalScore }: WeightBarProps) {
         </div>
       ))}
       <div className="weight-result">
-        <span className={isPositive ? "text-green-400" : "text-red-400"}>
-          {isPositive ? "✅ Positive" : "❌ Negative"}
+        <span className="weight-result-label">Combined Score</span>
+        <span className={`weight-result-value ${
+          isNegative ? "text-red-400" : isPositive ? "text-green-400" : "text-gray-400"
+        }`}>
+          {finalScore.toFixed(2)}
         </span>
-        <span className="ml-2 text-gray-300">({finalScore.toFixed(2)})</span>
       </div>
     </div>
   )

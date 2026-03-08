@@ -16,6 +16,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { AnalysisBreakdown } from "@/components/analysis/AnalysisBreakdown"
 import { ScoreBar } from "@/components/analysis/ScoreBar"
+import { AITerminalStream } from "@/components/news/AITerminalStream"
 import { ArrowLeft } from "lucide-react"
 import {
   Bar,
@@ -44,20 +45,25 @@ export default function NewsDetail() {
       try {
         const id = params.id as string
         const articleData = await newsGetById(id)
+        
+        setArticle(articleData || null)
+        setLoading(false) // Hide global spinner so UI can render the article + terminal
+
         if (!articleData) return
 
-        setArticle(articleData)
+        // Only analyze if there is meaningful text content
+        const textToAnalyze = (articleData.content || articleData.summary || "").trim()
+        if (textToAnalyze.length > 20) {
+          setAnalyzing(true)
+          const result = await analyzeNews(textToAnalyze)
+          setAnalysis(result)
+        }
 
-        setAnalyzing(true)
-        const result = await analyzeNews(
-          articleData.content || articleData.summary
-        )
-        setAnalysis(result)
       } catch (err) {
         console.error("Failed to load article or analysis:", err)
+        setLoading(false)
       } finally {
         setAnalyzing(false)
-        setLoading(false)
       }
     }
 
@@ -162,6 +168,11 @@ export default function NewsDetail() {
           </Card>
 
           {/* -------- Analysis Breakdown -------- */}
+          {analyzing && (
+            <div className="mt-8">
+              <AITerminalStream />
+            </div>
+          )}
           {!analyzing && analysis?.explanation && (
             <AnalysisBreakdown explanation={analysis.explanation} />
           )}
@@ -318,9 +329,15 @@ export default function NewsDetail() {
 
             <CardContent className="space-y-4">
               {analyzing && (
-                <p className="text-sm text-muted-foreground">
-                  Running market impact analysis…
-                </p>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Status</span>
+                    <span className="text-blue-400 animate-pulse font-medium">Processing...</span>
+                  </div>
+                  <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
+                    <div className="h-full bg-blue-500 w-1/2 animate-[progress_2s_ease-in-out_infinite]" />
+                  </div>
+                </div>
               )}
 
               {!analyzing && analysis && (
@@ -396,8 +413,8 @@ export default function NewsDetail() {
                       <p
                         className={
                           analysis.direction === "positive"
-                            ? "font-semibold text-green-500"
-                            : "font-semibold text-red-500"
+                            ? "font-semibold text-green-500 capitalize"
+                            : "font-semibold text-red-500 capitalize"
                         }
                       >
                         {analysis.direction}
