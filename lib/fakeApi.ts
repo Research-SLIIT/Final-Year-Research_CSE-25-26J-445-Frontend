@@ -307,59 +307,140 @@ export const authUpdateProfile = async (
   };
 };
 
-// News API functions
+// News API functions — fetch real articles from backend, fall back to mock
+const BACKEND_URL =
+  process.env.NEXT_PUBLIC_SENTIMENT_BACKEND_URL || "http://localhost:8002";
+
 export const newsList = async (
   query?: string,
   tag?: string,
   sort?: string
 ): Promise<NewsArticle[]> => {
-  await delay(400);
-  let articles = [...(newsData as any).news];
+  // 1. Get mock articles
+  await delay(100);
+  let mockArticles = [...(newsData as any).news] as NewsArticle[];
 
+  // 2. Try to get real articles from the backend
+  let realArticles: NewsArticle[] = [];
+  try {
+    const params = new URLSearchParams();
+    if (query) params.set("query", query);
+    if (tag) params.set("tag", tag);
+    if (sort === "oldest") params.set("sort", "oldest");
+    params.set("limit", "100");
+
+    const url = `${BACKEND_URL}/articles?${params.toString()}`;
+    console.log("[News API] Fetching from:", url);
+
+    const res = await fetch(url);
+    console.log("[News API] Response status:", res.status);
+
+    if (res.ok) {
+      const data = await res.json();
+      realArticles = (data.articles ?? []) as NewsArticle[];
+      console.log(
+        `[News API] ✅ Got ${realArticles.length} real articles from backend`
+      );
+    } else {
+      console.warn("[News API] Backend returned non-OK status:", res.status);
+    }
+  } catch (err) {
+    console.warn("[News API] ❌ Backend unreachable:", err);
+  }
+
+  // 3. Filter mock articles by query/tag
   if (query) {
     const q = query.toLowerCase();
-    articles = articles.filter(
-      (a: any) =>
+    mockArticles = mockArticles.filter(
+      (a) =>
         a.title.toLowerCase().includes(q) ||
         a.summary.toLowerCase().includes(q) ||
         a.content?.toLowerCase().includes(q)
     );
   }
-
   if (tag) {
-    articles = articles.filter((a: any) => a.tags.includes(tag));
+    mockArticles = mockArticles.filter((a) => a.tags.includes(tag));
   }
 
+  // 4. Merge — real articles first, then mock (deduplicate by title)
+  const seenTitles = new Set(realArticles.map((a) => a.title.toLowerCase()));
+  const uniqueMock = mockArticles.filter(
+    (a) => !seenTitles.has(a.title.toLowerCase())
+  );
+  let merged = [...realArticles, ...uniqueMock];
+
+  console.log(
+    `[News API] Merged: ${realArticles.length} real + ${uniqueMock.length} mock = ${merged.length} total`
+  );
+
+  // 5. Sort
   if (sort === "oldest") {
-    articles.sort(
-      (a: any, b: any) =>
+    merged.sort(
+      (a, b) =>
         new Date(a.publishedDate).getTime() -
         new Date(b.publishedDate).getTime()
     );
   } else {
-    articles.sort(
-      (a: any, b: any) =>
+    merged.sort(
+      (a, b) =>
         new Date(b.publishedDate).getTime() -
         new Date(a.publishedDate).getTime()
     );
   }
 
-  return articles as NewsArticle[];
+  return merged;
 };
 
 export const newsGetById = async (id: string): Promise<NewsArticle | null> => {
+  // Try backend first
+  try {
+    const url = `${BACKEND_URL}/articles/${id}`;
+    console.log("[News API] Fetching article by ID from:", url);
+    const res = await fetch(url);
+
+    if (res.ok) {
+      const article = await res.json();
+      if (article && !article.error) {
+        console.log("[News API] ✅ Got article from backend:", article.title);
+        return article as NewsArticle;
+      }
+    }
+  } catch (err) {
+    console.warn("[News API] ❌ Backend unreachable for article:", err);
+  }
+
+  // Fallback to mock
+  console.log("[News API] Using mock data for article ID:", id);
   await delay(300);
   const article = (newsData as any).news.find((a: any) => a.id === id);
   return article || null;
 };
 
 export const newsGetAllTags = async (): Promise<string[]> => {
-  await delay(200);
-  const tags = new Set<string>();
+  const tagsSet = new Set<string>();
+
+  // Get mock tags
   (newsData as any).news.forEach((a: any) => {
-    a.tags.forEach((tag: string) => tags.add(tag));
+    a.tags.forEach((tag: string) => tagsSet.add(tag));
   });
-  return Array.from(tags).sort();
+
+  // Try to merge real tags from backend
+  try {
+    const url = `${BACKEND_URL}/articles/tags`;
+    console.log("[News API] Fetching tags from:", url);
+    const res = await fetch(url);
+
+    if (res.ok) {
+      const data = await res.json();
+      const realTags = (data.tags ?? []) as string[];
+      console.log(`[News API] ✅ Got ${realTags.length} tags from backend`);
+      realTags.forEach((tag: string) => tagsSet.add(tag));
+    }
+  } catch (err) {
+    console.warn("[News API] ❌ Backend unreachable for tags:", err);
+  }
+
+  return Array.from(tagsSet).sort();
 };
 
 export const predictDividend = async (

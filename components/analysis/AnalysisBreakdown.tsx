@@ -44,7 +44,7 @@ export function AnalysisBreakdown({ explanation }: AnalysisBreakdownProps) {
       {/* ================= STAGE 1: Impact Detection ================= */}
       <div className="stage stage-1">
         <div className="stage-header">
-          <span className="stage-number">1️⃣</span>
+          <span className="stage-number">1</span>
           <span className="stage-title">Market Impact Detection</span>
           {stage1.passed !== undefined && (
             <StatusBadge passed={stage1.passed} />
@@ -69,7 +69,7 @@ export function AnalysisBreakdown({ explanation }: AnalysisBreakdownProps) {
       {/* ================= STAGE 2A: ML Prediction ================= */}
       <div className="stage stage-2a">
         <div className="stage-header">
-          <span className="stage-number">2️⃣A</span>
+          <span className="stage-number">2A</span>
           <span className="stage-title">ML Direction Prediction</span>
           {stage2a.direction && (
             <DirectionBadge direction={stage2a.direction} />
@@ -107,8 +107,17 @@ export function AnalysisBreakdown({ explanation }: AnalysisBreakdownProps) {
       {/* ================= STAGE 2B: Lexicon Analysis ================= */}
       <div className="stage stage-2b">
         <div className="stage-header">
-          <span className="stage-number">2️⃣B</span>
+          <span className="stage-number">2B</span>
           <span className="stage-title">Lexicon Sentiment Analysis</span>
+          <DirectionBadge 
+            direction={
+              stage2b.score !== undefined && stage2b.score > 0 
+                ? "positive" 
+                : stage2b.score !== undefined && stage2b.score < 0 
+                ? "negative" 
+                : "neutral"
+            } 
+          />
           {stage2b.confidence !== undefined && (
             <ConfidenceBadge confidence={stage2b.confidence} />
           )}
@@ -144,9 +153,9 @@ export function AnalysisBreakdown({ explanation }: AnalysisBreakdownProps) {
       <div className="stage-arrow">↓</div>
 
       {/* ================= STAGE 3: Fusion Logic ================= */}
-      <div className="stage stage-3 final">
+      <div className={`stage stage-3 final final-${explanation.final_decision.toLowerCase()}`}>
         <div className="stage-header">
-          <span className="stage-number">3️⃣</span>
+          <span className="stage-number">3</span>
           <span className="stage-title">Fusion & Final Decision</span>
         </div>
         <p className="stage-description">{stage3.description}</p>
@@ -156,11 +165,12 @@ export function AnalysisBreakdown({ explanation }: AnalysisBreakdownProps) {
             <WeightBar
               weights={stage3.weights}
               finalScore={explanation.final_score}
+              finalDecision={explanation.final_decision}
             />
           </div>
         )}
 
-        <div className="final-result">
+        <div className={`final-result final-result-${explanation.final_decision.toLowerCase()}`}>
           <h4>Final Prediction: {explanation.final_decision}</h4>
           <p className="final-metrics">
             Score: <strong>{explanation.final_score.toFixed(2)}</strong> | 
