@@ -44,35 +44,39 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import { TrendingUp, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { TrendingUp, ArrowUpRight, ArrowDownRight, TrendingDown, Minus, Info, BarChart3 } from "lucide-react";
 
-// Mock data generator for historical monthly open prices
-const generateMonthlyOpenPrices = (currentPrice: number) => {
-  const months = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
-  ];
-  return months.map((month, index) => ({
-    month,
-    openPrice: currentPrice + (Math.random() * 200 - 100) + index * 5,
-  }));
+// Mock data generator for historical daily open prices (last 90 trading days)
+const generateDailyOpenPrices = (currentPrice: number) => {
+  const days = 90;
+  const result = [];
+  let price = currentPrice * 0.9;
+  for (let i = days; i >= 0; i--) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    // skip weekends
+    if (date.getDay() === 0 || date.getDay() === 6) continue;
+    price = price + (Math.random() * 6 - 2.5);
+    result.push({
+      date: date.toLocaleDateString("en-GB", { day: "2-digit", month: "short" }),
+      openPrice: parseFloat(price.toFixed(2)),
+    });
+  }
+  return result;
+};
+
+const TIME_RANGE_DAYS: Record<string, number> = {
+  "1week": 5,
+  "2weeks": 10,
+  "3weeks": 15,
+  "4weeks": 22,
 };
 
 export default function PredictPage() {
   const { inputs, output, loading, setInputs, setOutput, setLoading } =
     usePredictStore();
   const [snapshot, setSnapshot] = useState<OhlcvSnapshot | null>(null);
-  const [timeRange, setTimeRange] = useState<string>("12months");
+  const [timeRange, setTimeRange] = useState<string>("4weeks");
   const { toast } = useToast();
 
   const handleSearch = (company: any) => {
@@ -227,14 +231,14 @@ export default function PredictPage() {
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">LKR</p>
                 </div>
-                <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 p-5 rounded-lg border border-green-500/30">
+                <div className={`p-5 rounded-lg border ${output.predOpenTplus5 >= output.openToday ? 'bg-gradient-to-br from-green-500/20 to-emerald-500/20 border-green-500/30' : 'bg-gradient-to-br from-red-500/20 to-rose-500/20 border-red-500/30'}`}>
                   <p className="text-sm text-muted-foreground mb-2">
                     Predicted Open (Day 5)
                   </p>
-                  <p className="text-3xl font-bold text-green-600 dark:text-green-400">
+                  <p className={`text-3xl font-bold ${output.predOpenTplus5 >= output.openToday ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                     {output.predOpenTplus5.toFixed(2)}
                   </p>
-                  <p className="text-sm font-medium text-green-600 dark:text-green-400 mt-2 flex items-center gap-1">
+                  <p className={`text-sm font-medium mt-2 flex items-center gap-1 ${output.predOpenTplus5 >= output.openToday ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                     {output.predOpenTplus5 > output.openToday ? (
                       <ArrowUpRight className="h-4 w-4" />
                     ) : (
@@ -317,11 +321,238 @@ export default function PredictPage() {
                     />
                     <Bar dataKey="value" radius={[8, 8, 0, 0]}>
                       <Cell fill="#3b82f6" />
-                      <Cell fill="#22c55e" />
+                      <Cell fill={output.predOpenTplus5 >= output.openToday ? "#22c55e" : "#ef4444"} />
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Prediction Reasoning (XAI) */}
+          <Card className="bg-card border-border">
+            <CardHeader>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    Prediction Reasoning
+                    <Info className="h-4 w-4 text-muted-foreground" />
+                  </CardTitle>
+                  <CardDescription>
+                    Key factors influencing the T+5 open price forecast for{" "}
+                    {output.symbol}
+                  </CardDescription>
+                </div>
+                <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded shrink-0">
+                  SHAP Explainability
+                </span>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {output.explanation ? (
+                <>
+                  {/* AI-generated summary */}
+                  <div className="bg-muted/40 rounded-lg p-4 border border-border text-sm text-muted-foreground leading-relaxed">
+                    {output.explanation.summary}
+                  </div>
+
+                  {/* Top driving factors */}
+                  <div>
+                    <p className="text-sm font-medium mb-3">Top Driving Factors</p>
+                    <div className="space-y-3">
+                      {(() => {
+                        const maxShap = Math.max(
+                          ...output.explanation!.top_drivers.map((d) => Math.abs(d.shap_value)),
+                          0.001
+                        );
+                        return output.explanation!.top_drivers.map((driver) => (
+                          <div
+                            key={driver.feature}
+                            className="bg-muted/30 rounded-lg p-4 border border-border space-y-2"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                {driver.direction === "bullish" ? (
+                                  <ArrowUpRight className="h-4 w-4 text-green-500 shrink-0" />
+                                ) : (
+                                  <ArrowDownRight className="h-4 w-4 text-red-500 shrink-0" />
+                                )}
+                                <span className="text-sm font-medium">
+                                  {driver.display_name}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-3 shrink-0">
+                                <span
+                                  className={`text-xs font-medium ${
+                                    driver.direction === "bullish"
+                                      ? "text-green-600 dark:text-green-400"
+                                      : "text-red-600 dark:text-red-400"
+                                  }`}
+                                >
+                                  {driver.direction === "bullish" ? "+" : ""}
+                                  {driver.shap_value.toFixed(4)}
+                                </span>
+                                {/* Impact bar */}
+                                <div className="flex items-center gap-1">
+                                  <div className="w-20 h-1.5 bg-muted rounded-full overflow-hidden">
+                                    <div
+                                      className={`h-full rounded-full ${
+                                        driver.direction === "bullish"
+                                          ? "bg-green-500"
+                                          : "bg-red-500"
+                                      }`}
+                                      style={{
+                                        width: `${(Math.abs(driver.shap_value) / maxShap) * 100}%`,
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            <p className="text-xs text-muted-foreground pl-6">
+                              {driver.description}
+                            </p>
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  </div>
+
+                  {/* Signal counts */}
+                  <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border">
+                    {[
+                      {
+                        label: "Bullish Signals",
+                        count: output.explanation.top_drivers.filter(
+                          (d) => d.direction === "bullish"
+                        ).length,
+                        color: "text-green-600 dark:text-green-400",
+                        bg: "bg-green-500/10",
+                      },
+                      {
+                        label: "Bearish Signals",
+                        count: output.explanation.top_drivers.filter(
+                          (d) => d.direction === "bearish"
+                        ).length,
+                        color: "text-red-600 dark:text-red-400",
+                        bg: "bg-red-500/10",
+                      },
+                    ].map((s) => (
+                      <div
+                        key={s.label}
+                        className={`${s.bg} rounded-lg p-3 text-center`}
+                      >
+                        <p className={`text-2xl font-bold ${s.color}`}>
+                          {s.count}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {s.label}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Category Impacts */}
+                  <div className="pt-2 border-t border-border">
+                    <p className="text-sm font-medium mb-3 flex items-center gap-2">
+                      <BarChart3 className="h-4 w-4" />
+                      Category Impact Breakdown
+                    </p>
+                    <div className="space-y-2">
+                      {(() => {
+                        const categories = Object.entries(output.explanation!.category_impacts);
+                        const maxCatShap = Math.max(
+                          ...categories.map(([, c]) => Math.abs(c.total_shap)),
+                          0.001
+                        );
+                        return categories.map(([category, impact]) => (
+                          <div key={category} className="flex items-center gap-3">
+                            <span className="text-xs font-medium w-28 shrink-0 text-right">
+                              {category}
+                            </span>
+                            <div className="flex-1 flex items-center gap-2">
+                              <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden relative">
+                                <div
+                                  className={`h-full rounded-full ${
+                                    impact.direction === "bullish"
+                                      ? "bg-green-500"
+                                      : "bg-red-500"
+                                  }`}
+                                  style={{
+                                    width: `${(Math.abs(impact.total_shap) / maxCatShap) * 100}%`,
+                                  }}
+                                />
+                              </div>
+                              <span
+                                className={`text-xs font-medium w-16 shrink-0 ${
+                                  impact.direction === "bullish"
+                                    ? "text-green-600 dark:text-green-400"
+                                    : "text-red-600 dark:text-red-400"
+                                }`}
+                              >
+                                {impact.direction === "bullish" ? "+" : ""}
+                                {impact.total_shap.toFixed(4)}
+                              </span>
+                            </div>
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  </div>
+
+                  {/* Model Agreement */}
+                  <div className="pt-2 border-t border-border">
+                    <p className="text-sm font-medium mb-3">Model Agreement</p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div className="bg-muted/50 p-3 rounded-lg text-center">
+                        <p className="text-xs text-muted-foreground mb-1">
+                          Agreement Score
+                        </p>
+                        <p
+                          className={`text-xl font-bold ${
+                            output.explanation.model_agreement.agreement_score >= 0.85
+                              ? "text-green-600 dark:text-green-400"
+                              : output.explanation.model_agreement.agreement_score >= 0.65
+                              ? "text-yellow-600 dark:text-yellow-400"
+                              : "text-red-600 dark:text-red-400"
+                          }`}
+                        >
+                          {(output.explanation.model_agreement.agreement_score * 100).toFixed(1)}%
+                        </p>
+                      </div>
+                      {Object.entries(
+                        output.explanation.model_agreement.per_model_predictions
+                      ).map(([model, pred]) => (
+                        <div
+                          key={model}
+                          className="bg-muted/50 p-3 rounded-lg text-center"
+                        >
+                          <p className="text-xs text-muted-foreground mb-1 capitalize">
+                            {model}
+                          </p>
+                          <p
+                            className={`text-sm font-semibold ${
+                              pred > 0
+                                ? "text-green-600 dark:text-green-400"
+                                : "text-red-600 dark:text-red-400"
+                            }`}
+                          >
+                            {pred > 0 ? "+" : ""}
+                            {(pred * 100).toFixed(2)}%
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Info className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">
+                    Explanation unavailable for this prediction.
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -330,7 +561,7 @@ export default function PredictPage() {
             <CardHeader>
               <CardTitle>Historical Open Price Trend</CardTitle>
               <CardDescription>
-                Monthly open price changes over time
+                Daily open price changes over the selected period
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -344,9 +575,10 @@ export default function PredictPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="6months">Last 6 Months</SelectItem>
-                    <SelectItem value="12months">Last 12 Months</SelectItem>
-                    <SelectItem value="24months">Last 24 Months</SelectItem>
+                    <SelectItem value="1week">1 Week</SelectItem>
+                    <SelectItem value="2weeks">2 Weeks</SelectItem>
+                    <SelectItem value="3weeks">3 Weeks</SelectItem>
+                    <SelectItem value="4weeks">4 Weeks (1 Month)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -355,7 +587,9 @@ export default function PredictPage() {
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart
-                    data={generateMonthlyOpenPrices(output.openToday)}
+                    data={generateDailyOpenPrices(output.openToday).slice(
+                      -TIME_RANGE_DAYS[timeRange]
+                    )}
                     margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                   >
                     <CartesianGrid
@@ -363,10 +597,12 @@ export default function PredictPage() {
                       stroke="var(--color-muted)"
                     />
                     <XAxis
-                      dataKey="month"
+                      dataKey="date"
                       stroke="var(--color-muted-foreground)"
+                      tick={{ fontSize: 11 }}
+                      interval="preserveStartEnd"
                       label={{
-                        value: "Month",
+                        value: "Date",
                         position: "insideBottom",
                         offset: -5,
                       }}
