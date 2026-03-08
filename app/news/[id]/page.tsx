@@ -14,7 +14,22 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { AnalysisBreakdown } from "@/components/analysis/AnalysisBreakdown"
+import { ScoreBar } from "@/components/analysis/ScoreBar"
+import { AITerminalStream } from "@/components/news/AITerminalStream"
 import { ArrowLeft } from "lucide-react"
+import {
+  Bar,
+  BarChart,
+  Cell,
+  Pie,
+  PieChart,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts"
 
 export default function NewsDetail() {
   const params = useParams()
@@ -30,21 +45,25 @@ export default function NewsDetail() {
       try {
         const id = params.id as string
         const articleData = await newsGetById(id)
+        
+        setArticle(articleData || null)
+        setLoading(false) // Hide global spinner so UI can render the article + terminal
 
         if (!articleData) return
 
-        setArticle(articleData)
+        // Only analyze if there is meaningful text content
+        const textToAnalyze = (articleData.content || articleData.summary || "").trim()
+        if (textToAnalyze.length > 20) {
+          setAnalyzing(true)
+          const result = await analyzeNews(textToAnalyze)
+          setAnalysis(result)
+        }
 
-        setAnalyzing(true)
-        const result = await analyzeNews(
-          articleData.content || articleData.summary
-        )
-        setAnalysis(result)
       } catch (err) {
         console.error("Failed to load article or analysis:", err)
+        setLoading(false)
       } finally {
         setAnalyzing(false)
-        setLoading(false)
       }
     }
 
@@ -75,21 +94,36 @@ export default function NewsDetail() {
     )
   }
 
-  // ================= HISTORICAL DISTRIBUTION =================
   const examples = analysis?.historical_context?.examples ?? []
   const total = examples.length
+  const chartData =
+    total > 0
+      ? examples.map((ex, idx) => ({
+          name: ex.article_date
+            ? new Date(ex.article_date).toLocaleDateString()
+            : `#${idx + 1}`,
+          up: ex.max_daily_up ?? 0,
+          down: ex.max_daily_down ?? 0,
+        }))
+      : []
 
-  const positiveCount = examples.filter(
-    (e) => e.direction === "positive"
-  ).length
-  const negativeCount = examples.filter(
-    (e) => e.direction === "negative"
-  ).length
+  const impactScore =
+    analysis?.explanation?.decision_tree?.[0]?.score ??
+    analysis?.explanation?.final_score ??
+    null
 
-  const positivePct =
-    total > 0 ? Math.round((positiveCount / total) * 100) : 0
-  const negativePct =
-    total > 0 ? Math.round((negativeCount / total) * 100) : 0
+  const stats = analysis?.historical_context?.stats
+  const reactionMix =
+    stats &&
+    (typeof stats.positive_pct === "number" ||
+      typeof stats.neutral_pct === "number" ||
+      typeof stats.negative_pct === "number")
+      ? [
+          { name: "Positive", value: Math.max(stats.positive_pct ?? 0, 0) },
+          { name: "Neutral", value: Math.max(stats.neutral_pct ?? 0, 0) },
+          { name: "Negative", value: Math.max(stats.negative_pct ?? 0, 0) },
+        ]
+      : null
 
   return (
     <div className="space-y-6">
@@ -133,60 +167,61 @@ export default function NewsDetail() {
             </CardContent>
           </Card>
 
-          {/* ===== HISTORICAL OUTCOME DISTRIBUTION (NEW) ===== */}
-          {total > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Historical Outcome Distribution</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Similar events (n = {total})
-                </p>
-              </CardHeader>
-
-              <CardContent className="space-y-4">
-                {/* Positive */}
-                <div>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-green-500">Positive</span>
-                    <span>{positivePct}%</span>
-                  </div>
-                  <div className="h-2 w-full bg-muted rounded">
-                    <div
-                      className="h-2 bg-green-500 rounded"
-                      style={{ width: `${positivePct}%` }}
-                    />
-                  </div>
-                </div>
-
-                {/* Negative */}
-                <div>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-red-500">Negative</span>
-                    <span>{negativePct}%</span>
-                  </div>
-                  <div className="h-2 w-full bg-muted rounded">
-                    <div
-                      className="h-2 bg-red-500 rounded"
-                      style={{ width: `${negativePct}%` }}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          {/* -------- Analysis Breakdown -------- */}
+          {analyzing && (
+            <div className="mt-8">
+              <AITerminalStream />
+            </div>
+          )}
+          {!analyzing && analysis?.explanation && (
+            <AnalysisBreakdown explanation={analysis.explanation} />
           )}
 
-          {/* -------- Historical Market Context (LIST) -------- */}
+          {/* -------- Historical Market Context -------- */}
           {total > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle>Historical Market Context</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Similar market-moving events retrieved using semantic
-                  similarity
+                  Similar market-moving events retrieved using semantic similarity
                 </p>
               </CardHeader>
 
               <CardContent className="space-y-4">
+                {/* ===== Historical reaction mini-chart ===== */}
+                <div className="h-40 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartData}>
+                      <XAxis dataKey="name" hide />
+                      <YAxis
+                        tickFormatter={(value) => `${value}%`}
+                        stroke="#64748b"
+                        fontSize={10}
+                      />
+                      <ReferenceLine y={0} stroke="#64748b" strokeDasharray="3 3" />
+                      <Tooltip
+                        formatter={(value, key) => [
+                          `${Number(value as number).toFixed(2)}%`,
+                          key === "up" ? "Max daily up" : "Max daily down",
+                        ]}
+                      />
+                      <Bar
+                        dataKey="up"
+                        name="Max daily up"
+                        fill="#22c55e"
+                        radius={[4, 4, 0, 0]}
+                      />
+                      <Bar
+                        dataKey="down"
+                        name="Max daily down"
+                        fill="#ef4444"
+                        radius={[0, 0, 4, 4]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* ===== Individual examples list ===== */}
                 {examples.map((ex, idx) => (
                   <div
                     key={idx}
@@ -194,35 +229,89 @@ export default function NewsDetail() {
                   >
                     <div className="flex justify-between items-start gap-4">
                       <div>
-                        <p className="font-medium">{ex.topic}</p>
+                        {/* ✅ TITLE + URL (SAFE) */}
+                        {ex.url ? (
+                          <a
+                            href={ex.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-medium text-blue-400 hover:underline"
+                          >
+                            {ex.title ?? "Untitled article"}
+                          </a>
+                        ) : (
+                          <p className="font-medium">
+                            {ex.title ?? "Untitled article"}
+                          </p>
+                        )}
+
+                        {/* ✅ DATE (DEFENSIVE) */}
                         <p className="text-xs text-muted-foreground">
-                          {ex.date}
+                          {ex.article_date
+                            ? new Date(ex.article_date).toLocaleDateString()
+                            : "Date unavailable"}
                         </p>
                       </div>
 
+                      {/* ✅ REACTION BADGE */}
                       <Badge
                         className={
-                          ex.direction === "positive"
+                          ex.reaction_label === "positive"
                             ? "bg-green-600"
-                            : "bg-red-600"
+                            : ex.reaction_label === "negative"
+                            ? "bg-red-600"
+                            : "bg-gray-600"
                         }
                       >
-                        {ex.direction}
+                        {ex.reaction_label}
                       </Badge>
                     </div>
 
+                    {/* ✅ MARKET REACTION TEXT */}
                     <p className="text-sm mt-2 text-muted-foreground">
                       Market reaction:{" "}
-                      <span
-                        className={
-                          ex.pct_change_2d >= 0
-                            ? "text-green-500"
-                            : "text-red-500"
-                        }
-                      >
-                        {ex.pct_change_2d.toFixed(2)}%
-                      </span>{" "}
-                      over next two sessions
+                      {ex.reaction_label === "positive" &&
+                        Number.isFinite(ex.max_daily_up) && (
+                          <span className="text-green-600">
+                            +{Number(ex.max_daily_up).toFixed(2)}% max upside
+                          </span>
+                        )}
+
+                      {ex.reaction_label === "negative" &&
+                        Number.isFinite(ex.max_daily_down) && (
+                          <span className="text-red-600">
+                            {Number(ex.max_daily_down).toFixed(2)}% max downside
+                          </span>
+                        )}
+
+                      {ex.reaction_label === "neutral" && (
+                        <span className="text-gray-500 inline-flex flex-wrap items-center gap-2">
+                          {Number.isFinite(ex.max_daily_up) ||
+                          Number.isFinite(ex.max_daily_down) ? (
+                            <>
+                              <span className="text-gray-500">Range</span>
+                              <span className="inline-flex items-center gap-1 rounded-full bg-green-500/15 text-green-300 px-2 py-0.5 text-xs font-medium">
+                                <span className="opacity-80">Max up</span>
+                                <span>
+                                  {Number.isFinite(ex.max_daily_up)
+                                    ? `+${Number(ex.max_daily_up).toFixed(2)}%`
+                                    : "—"}
+                                </span>
+                              </span>
+                              <span className="inline-flex items-center gap-1 rounded-full bg-red-500/15 text-red-300 px-2 py-0.5 text-xs font-medium">
+                                <span className="opacity-80">Max down</span>
+                                <span>
+                                  {Number.isFinite(ex.max_daily_down)
+                                    ? `${Number(ex.max_daily_down).toFixed(2)}%`
+                                    : "—"}
+                                </span>
+                              </span>
+                            </>
+                          ) : (
+                            "No significant price reaction"
+                          )}
+                        </span>
+                      )}
                     </p>
                   </div>
                 ))}
@@ -240,9 +329,15 @@ export default function NewsDetail() {
 
             <CardContent className="space-y-4">
               {analyzing && (
-                <p className="text-sm text-muted-foreground">
-                  Running market impact analysis…
-                </p>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Status</span>
+                    <span className="text-blue-400 animate-pulse font-medium">Processing...</span>
+                  </div>
+                  <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
+                    <div className="h-full bg-blue-500 w-1/2 animate-[progress_2s_ease-in-out_infinite]" />
+                  </div>
+                </div>
               )}
 
               {!analyzing && analysis && (
@@ -252,7 +347,65 @@ export default function NewsDetail() {
                     <p className="font-semibold capitalize">
                       {analysis.impact.replace("_", " ")}
                     </p>
+                    {impactScore !== null && (
+                      <div className="mt-2">
+                        <ScoreBar
+                          score={impactScore}
+                          threshold={0.5}
+                          label={`Impact strength (${(impactScore * 100).toFixed(
+                            0
+                          )}%)`}
+                        />
+                      </div>
+                    )}
                   </div>
+
+                  {reactionMix && (
+                    <div className="pt-3 border-t border-border">
+                      <p className="text-sm font-medium mb-2">
+                        Historical reaction mix
+                      </p>
+                      <div className="h-44 w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Tooltip
+                              formatter={(value, name) => [
+                                `${(Number(value) * 100).toFixed(0)}%`,
+                                String(name),
+                              ]}
+                            />
+                            <Pie
+                              data={reactionMix}
+                              dataKey="value"
+                              nameKey="name"
+                              innerRadius={55}
+                              outerRadius={75}
+                              paddingAngle={2}
+                              stroke="rgba(148,163,184,0.2)"
+                            >
+                              <Cell fill="#22c55e" />
+                              <Cell fill="#94a3b8" />
+                              <Cell fill="#ef4444" />
+                            </Pie>
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground -mt-2">
+                        <span className="inline-flex items-center gap-2">
+                          <span className="h-2 w-2 rounded-full bg-green-500" />
+                          Positive
+                        </span>
+                        <span className="inline-flex items-center gap-2">
+                          <span className="h-2 w-2 rounded-full bg-slate-400" />
+                          Neutral
+                        </span>
+                        <span className="inline-flex items-center gap-2">
+                          <span className="h-2 w-2 rounded-full bg-red-500" />
+                          Negative
+                        </span>
+                      </div>
+                    </div>
+                  )}
 
                   {analysis.direction && (
                     <div>
@@ -260,27 +413,12 @@ export default function NewsDetail() {
                       <p
                         className={
                           analysis.direction === "positive"
-                            ? "font-semibold text-green-500"
-                            : "font-semibold text-red-500"
+                            ? "font-semibold text-green-500 capitalize"
+                            : "font-semibold text-red-500 capitalize"
                         }
                       >
                         {analysis.direction}
                       </p>
-                    </div>
-                  )}
-
-                  {analysis.identified_companies.length > 0 && (
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">
-                        Identified Companies
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {analysis.identified_companies.map((c) => (
-                          <Badge key={c.ticker} variant="secondary">
-                            {c.matched_entity}
-                          </Badge>
-                        ))}
-                      </div>
                     </div>
                   )}
 
