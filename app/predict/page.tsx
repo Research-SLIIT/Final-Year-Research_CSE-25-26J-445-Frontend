@@ -37,6 +37,7 @@ import {
   Line,
   BarChart,
   Bar,
+  ReferenceLine,
   ResponsiveContainer,
   XAxis,
   YAxis,
@@ -72,6 +73,7 @@ export default function PredictPage() {
   const [histTimeRange, setHistTimeRange] = useState<string>("4weeks");
   const [histData, setHistData] = useState<OpenPriceHistoryPoint[]>([]);
   const [histLoading, setHistLoading] = useState(false);
+  const [histPrediction, setHistPrediction] = useState<number | null>(null);
 
   // ── Tab 1 handlers ───────────────────────────────────────────────────────
   const handleSearch = (company: any) => {
@@ -122,12 +124,15 @@ export default function PredictPage() {
   const handleHistCompanySelect = async (company: any) => {
     setHistCompany(company.symbol);
     setHistData([]);
+    setHistPrediction(null);
     setHistLoading(true);
     try {
-      const data = await fetchOpenPriceHistory(company.symbol, 22);
-      setHistData(data);
-    } catch {
-      // silently fail — charts show empty state
+      const [data, pred] = await Promise.allSettled([
+        fetchOpenPriceHistory(company.symbol, 22),
+        predictOpenPrice(company.symbol),
+      ]);
+      if (data.status === "fulfilled") setHistData(data.value);
+      if (pred.status === "fulfilled") setHistPrediction(pred.value.predOpenTplus5);
     } finally {
       setHistLoading(false);
     }
@@ -904,6 +909,20 @@ export default function PredictPage() {
                           />
                           <Legend />
                           <Line type="monotone" dataKey="openPrice" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} name="Open Price" />
+                          {histPrediction !== null && (
+                            <ReferenceLine
+                              y={histPrediction}
+                              stroke="#f59e0b"
+                              strokeDasharray="5 3"
+                              strokeWidth={1.5}
+                              label={{
+                                value: `T+5 Pred: LKR ${histPrediction.toFixed(2)}`,
+                                position: "insideTopRight",
+                                fill: "#f59e0b",
+                                fontSize: 11,
+                              }}
+                            />
+                          )}
                         </LineChart>
                       </ResponsiveContainer>
                     </div>
