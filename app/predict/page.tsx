@@ -5,7 +5,11 @@ import {
   getOhlcvSnapshot,
   type OhlcvSnapshot,
 } from "@/lib/fakeApi";
-import { predictOpenPrice } from "@/lib/api/open-price-prediction.api";
+import {
+  predictOpenPrice,
+  fetchOpenPriceHistory,
+  type OpenPriceHistoryPoint,
+} from "@/lib/api/open-price-prediction.api";
 import { usePredictStore } from "@/stores/usePredictStore";
 import { TickerSearch } from "@/components/ticker-search";
 import { ConfidenceBadge } from "@/components/confidence-badge";
@@ -46,25 +50,6 @@ import {
 } from "recharts";
 import { TrendingUp, ArrowUpRight, ArrowDownRight, TrendingDown, Minus, Info, BarChart3 } from "lucide-react";
 
-// Mock data generator for historical daily open prices (last 90 trading days)
-const generateDailyOpenPrices = (currentPrice: number) => {
-  const days = 90;
-  const result = [];
-  let price = currentPrice * 0.9;
-  for (let i = days; i >= 0; i--) {
-    const date = new Date();
-    date.setDate(date.getDate() - i);
-    // skip weekends
-    if (date.getDay() === 0 || date.getDay() === 6) continue;
-    price = price + (Math.random() * 6 - 2.5);
-    result.push({
-      date: date.toLocaleDateString("en-GB", { day: "2-digit", month: "short" }),
-      openPrice: parseFloat(price.toFixed(2)),
-    });
-  }
-  return result;
-};
-
 const TIME_RANGE_DAYS: Record<string, number> = {
   "1week": 5,
   "2weeks": 10,
@@ -77,12 +62,14 @@ export default function PredictPage() {
     usePredictStore();
   const [snapshot, setSnapshot] = useState<OhlcvSnapshot | null>(null);
   const [timeRange, setTimeRange] = useState<string>("4weeks");
+  const [historicalData, setHistoricalData] = useState<OpenPriceHistoryPoint[]>([]);
   const { toast } = useToast();
 
   const handleSearch = (company: any) => {
     setInputs({ symbol: company.symbol });
     setSnapshot(null);
     setOutput(null);
+    setHistoricalData([]);
   };
 
   const handlePredict = async () => {
@@ -107,6 +94,9 @@ export default function PredictPage() {
         new Date().toISOString().split('T')[0]
       );
       setOutput(result);
+
+      const history = await fetchOpenPriceHistory(inputs.symbol, 22);
+      setHistoricalData(history);
 
       toast({
         title: "Success",
@@ -587,9 +577,7 @@ export default function PredictPage() {
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart
-                    data={generateDailyOpenPrices(output.openToday).slice(
-                      -TIME_RANGE_DAYS[timeRange]
-                    )}
+                    data={historicalData.slice(-TIME_RANGE_DAYS[timeRange])}
                     margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                   >
                     <CartesianGrid

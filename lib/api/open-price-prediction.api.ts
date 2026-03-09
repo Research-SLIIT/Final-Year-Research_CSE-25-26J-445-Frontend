@@ -135,6 +135,38 @@ function transformBackendResponse(
   };
 }
 
+export interface OpenPriceHistoryPoint {
+  date: string;      // "DD MMM" formatted (e.g. "01 Dec")
+  openPrice: number;
+}
+
+/**
+ * Fetch real historical open prices for a company.
+ * Always fetches nDays trading days (default 22 = 4 weeks max); caller slices locally per time range.
+ */
+export async function fetchOpenPriceHistory(
+  companyId: string,
+  nDays: number = 22,
+): Promise<OpenPriceHistoryPoint[]> {
+  const normalizedId = normalizeSymbol(companyId);
+  const url = `${API_BASE_URL}/api/v1/open-price/history?company_id=${encodeURIComponent(normalizedId)}&n_days=${nDays}`;
+  try {
+    const response = await fetch(url, { method: "GET" });
+    if (!response.ok) return [];
+    const data = await response.json();
+    const rawHistory: Array<{ date: string; open_price: number }> = data.history ?? [];
+    return rawHistory.map((point) => {
+      const dateObj = new Date(point.date + "T00:00:00"); // force local-time parse
+      return {
+        date: dateObj.toLocaleDateString("en-GB", { day: "2-digit", month: "short" }),
+        openPrice: point.open_price,
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
 /**
  * Fetch the list of companies available for prediction
  */
