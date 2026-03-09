@@ -799,203 +799,224 @@ export default function PredictPage() {
             </Card>
           )}
 
-          {/* Charts — shown when data is loaded */}
-          {!histLoading && histData.length > 0 && (
-            <>
-              {/* Graph 1: Open Price Trend */}
-              <Card className="bg-card border-border">
-                <CardHeader>
-                  <CardTitle>Historical Open Price Trend</CardTitle>
-                  <CardDescription>
-                    Daily open price over the selected period — {histCompany}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-72">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart
-                        data={histData.slice(-TIME_RANGE_DAYS[histTimeRange])}
-                        margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                      >
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          stroke="var(--color-muted)"
-                        />
-                        <XAxis
-                          dataKey="date"
-                          stroke="var(--color-muted-foreground)"
-                          tick={{ fontSize: 11 }}
-                          interval="preserveStartEnd"
-                        />
-                        <YAxis
-                          stroke="var(--color-muted-foreground)"
-                          label={{
-                            value: "Open Price (LKR)",
-                            angle: -90,
-                            position: "insideLeft",
-                          }}
-                        />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: "var(--color-card)",
-                            border: "1px solid var(--color-border)",
-                          }}
-                          formatter={(value: number) => [
-                            `LKR ${value.toFixed(2)}`,
-                            "Open Price",
-                          ]}
-                        />
-                        <Legend />
-                        <Line
-                          type="monotone"
-                          dataKey="openPrice"
-                          stroke="#3b82f6"
-                          strokeWidth={2}
-                          dot={{ r: 3 }}
-                          name="Open Price"
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
+          {/* Charts & details — shown when data is loaded */}
+          {!histLoading && histData.length > 0 && (() => {
+            const sliced = histData.slice(-TIME_RANGE_DAYS[histTimeRange]);
+            const first = sliced[0];
+            const last  = sliced[sliced.length - 1];
 
-              {/* Graph 2: OHLC Price History */}
-              <Card className="bg-card border-border">
-                <CardHeader>
-                  <CardTitle>Price History (OHLC)</CardTitle>
-                  <CardDescription>
-                    Open, High, Low and Close prices over the selected period — {histCompany}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart
-                        data={histData.slice(-TIME_RANGE_DAYS[histTimeRange])}
-                        margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                      >
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          stroke="var(--color-muted)"
-                        />
-                        <XAxis
-                          dataKey="date"
-                          stroke="var(--color-muted-foreground)"
-                          tick={{ fontSize: 11 }}
-                          interval="preserveStartEnd"
-                        />
-                        <YAxis
-                          stroke="var(--color-muted-foreground)"
-                          label={{
-                            value: "Price (LKR)",
-                            angle: -90,
-                            position: "insideLeft",
-                          }}
-                        />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: "var(--color-card)",
-                            border: "1px solid var(--color-border)",
-                          }}
-                          formatter={(value: number) => [
-                            `LKR ${value.toFixed(2)}`,
-                          ]}
-                        />
-                        <Legend />
-                        <Line
-                          type="monotone"
-                          dataKey="openPrice"
-                          stroke="#3b82f6"
-                          strokeWidth={2}
-                          dot={false}
-                          name="Open"
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="highPrice"
-                          stroke="#22c55e"
-                          strokeWidth={2}
-                          dot={false}
-                          name="High"
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="lowPrice"
-                          stroke="#ef4444"
-                          strokeWidth={2}
-                          dot={false}
-                          name="Low"
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="closePrice"
-                          stroke="#f59e0b"
-                          strokeWidth={2}
-                          dot={false}
-                          name="Close"
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
+            const minOpen  = Math.min(...sliced.map((d) => d.openPrice));
+            const maxOpen  = Math.max(...sliced.map((d) => d.openPrice));
+            const avgOpen  = sliced.reduce((s, d) => s + d.openPrice, 0) / sliced.length;
+            const openChangePct  = ((last.openPrice  - first.openPrice)  / first.openPrice)  * 100;
+            const closeChangePct = ((last.closePrice - first.closePrice) / first.closePrice) * 100;
+            const volChangePct   = first.tradeVolume > 0
+              ? ((last.tradeVolume - first.tradeVolume) / first.tradeVolume) * 100
+              : 0;
 
-              {/* Graph 3: Volume & Turnover */}
-              <Card className="bg-card border-border">
-                <CardHeader>
-                  <CardTitle>Volume &amp; Turnover</CardTitle>
-                  <CardDescription>
-                    Trade volume, share volume and turnover over the selected period — {histCompany}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-72">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={histData.slice(-TIME_RANGE_DAYS[histTimeRange])}
-                        margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                      >
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          stroke="var(--color-muted)"
-                        />
-                        <XAxis
-                          dataKey="date"
-                          stroke="var(--color-muted-foreground)"
-                          tick={{ fontSize: 11 }}
-                          interval="preserveStartEnd"
-                        />
-                        <YAxis stroke="var(--color-muted-foreground)" />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: "var(--color-card)",
-                            border: "1px solid var(--color-border)",
-                          }}
-                        />
-                        <Legend />
-                        <Bar
-                          dataKey="tradeVolume"
-                          fill="#3b82f6"
-                          name="Trade Volume"
-                        />
-                        <Bar
-                          dataKey="shareVolume"
-                          fill="#8b5cf6"
-                          name="Share Volume"
-                        />
-                        <Bar
-                          dataKey="turnover"
-                          fill="#f59e0b"
-                          name="Turnover"
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-            </>
-          )}
+            const changeBadge = (pct: number) => (
+              <span
+                className={`text-xs font-semibold px-2 py-0.5 rounded-full flex items-center gap-0.5 ${
+                  pct >= 0
+                    ? "bg-green-500/15 text-green-600 dark:text-green-400"
+                    : "bg-red-500/15 text-red-600 dark:text-red-400"
+                }`}
+              >
+                {pct >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                {pct >= 0 ? "+" : ""}{pct.toFixed(2)}%
+              </span>
+            );
+
+            return (
+              <>
+                {/* Latest Snapshot Row */}
+                <Card className="bg-card border-border">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">Latest Trading Day Snapshot</CardTitle>
+                    <CardDescription>{last.date} — {histCompany}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+                      {[
+                        { label: "Open",      value: `LKR ${last.openPrice.toFixed(2)}`,  color: "text-foreground" },
+                        { label: "High",      value: `LKR ${last.highPrice.toFixed(2)}`,  color: "text-green-600 dark:text-green-400" },
+                        { label: "Low",       value: `LKR ${last.lowPrice.toFixed(2)}`,   color: "text-red-600 dark:text-red-400" },
+                        { label: "Close",     value: `LKR ${last.closePrice.toFixed(2)}`, color: "text-foreground" },
+                        { label: "Trade Vol", value: last.tradeVolume.toLocaleString(),   color: "text-foreground" },
+                        { label: "Share Vol", value: last.shareVolume.toLocaleString(),   color: "text-foreground" },
+                        { label: "Turnover",  value: last.turnover.toLocaleString(),      color: "text-foreground" },
+                      ].map((item) => (
+                        <div key={item.label} className="bg-muted/50 rounded-lg p-3 text-center">
+                          <p className="text-xs text-muted-foreground mb-1">{item.label}</p>
+                          <p className={`text-sm font-semibold ${item.color}`}>{item.value}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Summary Stats Cards */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {[
+                    { label: "Min Open Price", value: `LKR ${minOpen.toFixed(2)}`, sub: "Period low",  color: "text-foreground" },
+                    { label: "Max Open Price", value: `LKR ${maxOpen.toFixed(2)}`, sub: "Period high", color: "text-foreground" },
+                    { label: "Avg Open Price", value: `LKR ${avgOpen.toFixed(2)}`, sub: "Period mean", color: "text-foreground" },
+                    {
+                      label: "Period Change",
+                      value: `${openChangePct >= 0 ? "+" : ""}${openChangePct.toFixed(2)}%`,
+                      sub: `${first.date} → ${last.date}`,
+                      color: openChangePct >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400",
+                    },
+                  ].map((stat) => (
+                    <Card key={stat.label} className="bg-card border-border">
+                      <CardContent className="pt-5 pb-4">
+                        <p className="text-xs text-muted-foreground mb-1">{stat.label}</p>
+                        <p className={`text-xl font-bold ${stat.color}`}>{stat.value}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{stat.sub}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+
+                {/* Graph 1: Open Price Trend */}
+                <Card className="bg-card border-border">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle>Historical Open Price Trend</CardTitle>
+                        <CardDescription>
+                          Daily open price over the selected period — {histCompany}
+                        </CardDescription>
+                      </div>
+                      {changeBadge(openChangePct)}
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-72">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={sliced} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="var(--color-muted)" />
+                          <XAxis dataKey="date" stroke="var(--color-muted-foreground)" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
+                          <YAxis stroke="var(--color-muted-foreground)" label={{ value: "Open Price (LKR)", angle: -90, position: "insideLeft" }} />
+                          <Tooltip
+                            contentStyle={{ backgroundColor: "var(--color-card)", border: "1px solid var(--color-border)" }}
+                            formatter={(value: number) => [`LKR ${value.toFixed(2)}`, "Open Price"]}
+                          />
+                          <Legend />
+                          <Line type="monotone" dataKey="openPrice" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} name="Open Price" />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Graph 2: OHLC Price History */}
+                <Card className="bg-card border-border">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle>Price History (OHLC)</CardTitle>
+                        <CardDescription>
+                          Open, High, Low and Close prices over the selected period — {histCompany}
+                        </CardDescription>
+                      </div>
+                      {changeBadge(closeChangePct)}
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-80">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={sliced} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="var(--color-muted)" />
+                          <XAxis dataKey="date" stroke="var(--color-muted-foreground)" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
+                          <YAxis stroke="var(--color-muted-foreground)" label={{ value: "Price (LKR)", angle: -90, position: "insideLeft" }} />
+                          <Tooltip
+                            contentStyle={{ backgroundColor: "var(--color-card)", border: "1px solid var(--color-border)" }}
+                            formatter={(value: number) => [`LKR ${value.toFixed(2)}`]}
+                          />
+                          <Legend />
+                          <Line type="monotone" dataKey="openPrice"  stroke="#3b82f6" strokeWidth={2} dot={false} name="Open"  />
+                          <Line type="monotone" dataKey="highPrice"  stroke="#22c55e" strokeWidth={2} dot={false} name="High"  />
+                          <Line type="monotone" dataKey="lowPrice"   stroke="#ef4444" strokeWidth={2} dot={false} name="Low"   />
+                          <Line type="monotone" dataKey="closePrice" stroke="#f59e0b" strokeWidth={2} dot={false} name="Close" />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Graph 3: Volume & Turnover */}
+                <Card className="bg-card border-border">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle>Volume &amp; Turnover</CardTitle>
+                        <CardDescription>
+                          Trade volume, share volume and turnover over the selected period — {histCompany}
+                        </CardDescription>
+                      </div>
+                      {changeBadge(volChangePct)}
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-72">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={sliced} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="var(--color-muted)" />
+                          <XAxis dataKey="date" stroke="var(--color-muted-foreground)" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
+                          <YAxis stroke="var(--color-muted-foreground)" />
+                          <Tooltip contentStyle={{ backgroundColor: "var(--color-card)", border: "1px solid var(--color-border)" }} />
+                          <Legend />
+                          <Bar dataKey="tradeVolume"  fill="#3b82f6" name="Trade Volume"  />
+                          <Bar dataKey="shareVolume"  fill="#8b5cf6" name="Share Volume"  />
+                          <Bar dataKey="turnover"     fill="#f59e0b" name="Turnover"      />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Data Table */}
+                <Card className="bg-card border-border">
+                  <CardHeader>
+                    <CardTitle>Raw OHLCV Data</CardTitle>
+                    <CardDescription>
+                      Daily trading data for the selected period — {histCompany}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="overflow-x-auto rounded-lg border border-border">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-muted/50 border-b border-border">
+                            {["Date", "Open", "High", "Low", "Close", "Trade Vol", "Share Vol", "Turnover"].map((h) => (
+                              <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground whitespace-nowrap">
+                                {h}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[...sliced].reverse().map((row, i) => (
+                            <tr key={row.date} className={`border-b border-border last:border-0 ${i % 2 === 0 ? "" : "bg-muted/20"}`}>
+                              <td className="px-4 py-2.5 font-medium text-foreground whitespace-nowrap">{row.date}</td>
+                              <td className="px-4 py-2.5 text-foreground whitespace-nowrap">{row.openPrice.toFixed(2)}</td>
+                              <td className="px-4 py-2.5 text-green-600 dark:text-green-400 whitespace-nowrap">{row.highPrice.toFixed(2)}</td>
+                              <td className="px-4 py-2.5 text-red-600 dark:text-red-400 whitespace-nowrap">{row.lowPrice.toFixed(2)}</td>
+                              <td className="px-4 py-2.5 text-foreground whitespace-nowrap">{row.closePrice.toFixed(2)}</td>
+                              <td className="px-4 py-2.5 text-muted-foreground whitespace-nowrap">{row.tradeVolume.toLocaleString()}</td>
+                              <td className="px-4 py-2.5 text-muted-foreground whitespace-nowrap">{row.shareVolume.toLocaleString()}</td>
+                              <td className="px-4 py-2.5 text-muted-foreground whitespace-nowrap">{row.turnover.toLocaleString()}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </CardContent>
+                </Card>
+              </>
+            );
+          })()}
 
           {/* Empty State */}
           {!histLoading && !histCompany && (
