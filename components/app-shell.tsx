@@ -77,31 +77,33 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-64 bg-card border-r border-border transform transition-transform lg:relative lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 bg-card border-r border-border overflow-hidden transform transition-all duration-300 ease-in-out lg:relative lg:translate-x-0 w-64 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } ${desktopCollapsed ? "lg:hidden" : ""}`}
+        } ${desktopCollapsed ? "lg:w-0 lg:border-r-0" : "lg:w-64"}`}
       >
-        <div className="h-16 border-b border-border flex items-center px-6">
-          <h1 className="text-lg font-bold text-foreground">CSE Platform</h1>
+        <div className="w-64">
+          <div className="h-16 border-b border-border flex items-center px-6">
+            <h1 className="text-lg font-bold text-foreground">CSE Platform</h1>
+          </div>
+          <nav className="px-4 py-4">
+            {protectedNavigation.map((item) => {
+              const Icon = item.icon
+              const isActive = pathname === item.href
+              return (
+                <Link key={item.href} href={item.href}>
+                  <Button
+                    variant={isActive ? "default" : "ghost"}
+                    className="w-full justify-start gap-2 mb-2"
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {item.name}
+                  </Button>
+                </Link>
+              )
+            })}
+          </nav>
         </div>
-        <nav className="px-4 py-4">
-          {protectedNavigation.map((item) => {
-            const Icon = item.icon
-            const isActive = pathname === item.href
-            return (
-              <Link key={item.href} href={item.href}>
-                <Button
-                  variant={isActive ? "default" : "ghost"}
-                  className="w-full justify-start gap-2 mb-2"
-                  onClick={() => setSidebarOpen(false)}
-                >
-                  <Icon className="h-4 w-4" />
-                  {item.name}
-                </Button>
-              </Link>
-            )
-          })}
-        </nav>
       </aside>
 
       {/* Main content */}
