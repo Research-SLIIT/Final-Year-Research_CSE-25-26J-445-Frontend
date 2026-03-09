@@ -1,59 +1,43 @@
 /**
- * Custom hook for fetching report health check data
+ * Custom hook for fetching report health check data via SSE streaming
  */
 
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { ReportHealthCheckResponse } from '@/lib/types/financial-health.types';
-import { getReportHealthCheck } from '@/lib/api/financial-health.api';
+import { getReportHealthCheckStreamUrl } from '@/lib/api/financial-health.api';
+import { useAnalysisStream, ProgressEvent } from '@/hooks/use-analysis-stream';
 
 interface UseReportHealthCheckReturn {
     data: ReportHealthCheckResponse | null;
     loading: boolean;
     error: string | null;
+    events: ProgressEvent[];
     fetchHealthCheck: (symbol: string) => Promise<void>;
     reset: () => void;
 }
 
 /**
- * Hook for managing report health check state and API calls
- * @returns Object with data, loading, error states and control functions
+ * Hook for managing report health check state and API calls.
+ * Uses SSE streaming to receive real-time progress events.
  */
 export function useReportHealthCheck(): UseReportHealthCheckReturn {
-    const [data, setData] = useState<ReportHealthCheckResponse | null>(null);
-    const [loading, setLoading] = useState<boolean>(false);
-    const [error, setError] = useState<string | null>(null);
+    const { start, events, result, isLoading, error, reset: resetStream } = useAnalysisStream();
 
     const fetchHealthCheck = useCallback(async (symbol: string) => {
-        if (!symbol) {
-            setError('Please provide a stock symbol');
-            return;
-        }
-
-        setLoading(true);
-        setError(null);
-
-        try {
-            const result = await getReportHealthCheck(symbol);
-            setData(result);
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Failed to fetch report health check';
-            setError(errorMessage);
-            setData(null);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
+        if (!symbol) return;
+        const url = getReportHealthCheckStreamUrl(symbol);
+        await start(url).catch(() => {/* error already set in stream hook */});
+    }, [start]);
 
     const reset = useCallback(() => {
-        setData(null);
-        setLoading(false);
-        setError(null);
-    }, []);
+        resetStream();
+    }, [resetStream]);
 
     return {
-        data,
-        loading,
+        data: result as ReportHealthCheckResponse | null,
+        loading: isLoading,
         error,
+        events,
         fetchHealthCheck,
         reset,
     };

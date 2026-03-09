@@ -10,7 +10,9 @@ import { TickerSearch } from "@/components/ticker-search"
 import { KpiCard } from "@/components/kpi-card"
 import { ChartCard } from "@/components/chart-card"
 import { MetricsChart } from "@/components/metrics-chart"
+import { ZScoreGauge } from "@/components/z-score-gauge"
 import { CompanySymbolSearch } from "@/components/company-symbol-search"
+import { AnalysisProgress } from "@/components/analysis-progress"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -82,6 +84,13 @@ const formatPercentage = (value: number) => `${(value * 100).toFixed(2)}%`
 // Helper to format decimal
 const formatDecimal = (value: number) => value.toFixed(4)
 
+// Helper function to get Z-Score zone
+const getZScoreZone = (zScore: number): 'Safe' | 'Grey' | 'Distress' => {
+  if (zScore > 2.99) return 'Safe'
+  if (zScore >= 1.81) return 'Grey'
+  return 'Distress'
+}
+
 export default function RiskAnalysisPage() {
   const { inputs, results, loading, setInputs, setResults, setLoading } = useRiskStore()
   const [snapshot, setSnapshot] = useState<OhlcvSnapshot | null>(null)
@@ -93,6 +102,7 @@ export default function RiskAnalysisPage() {
     data: financialHealthData,
     loading: financialHealthLoading,
     error: financialHealthError,
+    events: financialHealthEvents,
     fetchAnalysis,
     reset: resetFinancialHealth
   } = useFinancialHealth()
@@ -111,6 +121,7 @@ export default function RiskAnalysisPage() {
     data: healthCheckData,
     loading: healthCheckLoading,
     error: healthCheckError,
+    events: healthCheckEvents,
     fetchHealthCheck,
     reset: resetHealthCheck
   } = useReportHealthCheck()
@@ -233,24 +244,17 @@ export default function RiskAnalysisPage() {
         </CardContent>
       </Card>
 
-      {/* Financial Health Loading State */}
-      {financialHealthLoading && (
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <Skeleton className="h-6 w-48" />
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[...Array(4)].map((_, i) => (
-                <div key={i}>
-                  <Skeleton className="h-4 w-24 mb-2" />
-                  <Skeleton className="h-6 w-32" />
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* SSE Analysis Progress */}
+      <AnalysisProgress
+        events={financialHealthEvents}
+        isLoading={financialHealthLoading}
+        title="Financial Health Analysis"
+      />
+      <AnalysisProgress
+        events={healthCheckEvents}
+        isLoading={healthCheckLoading}
+        title="Report Health Check"
+      />
 
       {/* Financial Health Error State */}
       {financialHealthError && (
@@ -296,7 +300,7 @@ export default function RiskAnalysisPage() {
                 </div>
               </div>
               {/* Report Link */}
-              <div className="mt-4 pt-4 border-t">
+              {/* <div className="mt-4 pt-4 border-t">
                 <a
                   href={financialHealthData.reportInfo.downloadUrl}
                   target="_blank"
@@ -307,7 +311,7 @@ export default function RiskAnalysisPage() {
                   View Financial Report ({financialHealthData.reportInfo.reportDate})
                   <ExternalLink className="h-3 w-3" />
                 </a>
-              </div>
+              </div> */}
             </CardContent>
           </Card>
 
@@ -324,7 +328,7 @@ export default function RiskAnalysisPage() {
                   </div>
                   <div>
                     <CardTitle className="text-lg bg-gradient-to-r from-emerald-600 to-teal-600 dark:from-emerald-400 dark:to-teal-400 bg-clip-text text-transparent">
-                      Next 3 Month Z-Score Prediction
+                      Next 90 Days Z-Score Prediction
                     </CardTitle>
                     <CardDescription className="text-xs mt-0.5">
                       Powered by {financialHealthData.prediction.model_name} Model
@@ -346,14 +350,13 @@ export default function RiskAnalysisPage() {
             </CardHeader>
 
             <CardContent className="relative z-10">
-              <div className="text-center py-6">
-                {/* Main Score Display */}
-                <div className="relative inline-block">
-                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-teal-500 blur-xl opacity-20 animate-pulse" />
-                  <p className="relative text-6xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 dark:from-emerald-400 dark:via-teal-400 dark:to-cyan-400 bg-clip-text text-transparent tracking-tight">
-                    {financialHealthData.prediction.z_score_next_quarter.toFixed(4)}
-                  </p>
-                </div>
+              <div className="py-4">
+                {/* Z-Score Threshold Gauge */}
+                <ZScoreGauge
+                  currentScore={financialHealthData.extractedData.ratios.z_score}
+                  predictedScore={financialHealthData.prediction.z_score_next_quarter}
+                  showBothScores={true}
+                />
 
                 {/* Change Indicator */}
                 <div className="mt-6 flex items-center justify-center gap-3">
@@ -544,10 +547,10 @@ export default function RiskAnalysisPage() {
           </div>
 
           {/* Financial Ratios Grid */}
-          {/* <Card className="bg-card border-border">
+          <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle>Financial Ratios</CardTitle>
-              <CardDescription>Key financial metrics extracted from the report</CardDescription>
+              <CardDescription>Key financial metrics extracted from the Latest report</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -598,19 +601,33 @@ export default function RiskAnalysisPage() {
                 </div>
 
               </div>
+              {financialHealthData.reportInfo?.downloadUrl && (
+                <div className="mt-4 pt-4 border-t">
+                  <a
+                    href={financialHealthData.reportInfo.downloadUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    <FileText className="h-4 w-4" />
+                    View Financial Report ({financialHealthData.reportInfo.reportDate})
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+              )}
             </CardContent>
-          </Card> */}
+          </Card>
 
           {/* Historical Metrics Chart */}
-          {/* <MetricsChart
+          <MetricsChart
             data={historyChartData}
             loading={historyLoading}
             error={historyError}
             companyCode={financialHealthData.symbol}
-          /> */}
+          />
 
           {/* Recommendations */}
-          {/* <Card className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border-amber-500/20">
+          <Card className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border-amber-500/20">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Lightbulb className="h-5 w-5 text-amber-500" />
@@ -630,7 +647,7 @@ export default function RiskAnalysisPage() {
                 ))}
               </ul>
             </CardContent>
-          </Card> */}
+          </Card>
         </>
       )}
 
@@ -664,7 +681,7 @@ export default function RiskAnalysisPage() {
         </Card>
       )}
 
-      {/* {healthCheckData && !healthCheckLoading && (
+      {healthCheckData && !healthCheckLoading && (
         <>
           <Card className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border-indigo-500/20">
             <CardHeader>
@@ -713,18 +730,20 @@ export default function RiskAnalysisPage() {
                   <p className="text-sm text-muted-foreground leading-relaxed mt-2">
                     {healthCheckData.analysisNotes}
                   </p>
-                  <div className="mt-4">
-                    <a
-                      href={healthCheckData.reportInfo.downloadUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
-                    >
-                      <FileText className="h-4 w-4" />
-                      View Source Report ({healthCheckData.reportInfo.reportPeriod})
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  </div>
+                  {healthCheckData.reportInfo?.downloadUrl && (
+                    <div className="mt-4">
+                      <a
+                        href={healthCheckData.reportInfo.downloadUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                      >
+                        <FileText className="h-4 w-4" />
+                        View Source Report ({healthCheckData.reportInfo.reportPeriod})
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </div>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -850,7 +869,7 @@ export default function RiskAnalysisPage() {
             </Card>
           )}
         </>
-      )} */}
+      )}
 
       {/* Results */}
       {results && (
