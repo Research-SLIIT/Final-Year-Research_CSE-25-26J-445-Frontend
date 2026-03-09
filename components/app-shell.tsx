@@ -4,7 +4,7 @@ import type React from "react"
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { BarChart3, TrendingUp, PieChart, Settings, Menu, X, LogOut, User, Newspaper, Banknote } from "lucide-react"
+import { BarChart3, TrendingUp, PieChart, Settings, Menu, X, LogOut, User, Newspaper, Banknote, PanelLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuthStore } from "@/stores/useAuthStore"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -12,7 +12,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 const protectedNavigation = [
   { name: "Dashboard", href: "/", icon: BarChart3 },
   { name: "Risk Analysis", href: "/risk", icon: PieChart },
-  { name: "Predict open price", href: "/predict", icon: TrendingUp },
+  { name: "Price Prediction", href: "/predict", icon: TrendingUp },
   { name: "Dividend", href: "/dividend", icon: Banknote },
   { name: "News", href: "/news", icon: Newspaper },
   { name: "Settings", href: "/settings", icon: Settings },
@@ -23,12 +23,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const { user, isAuthenticated, loading, loadSession, signOut } = useAuthStore()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [desktopCollapsed, setDesktopCollapsed] = useState(false)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     loadSession()
+    const stored = localStorage.getItem("sidebar-collapsed")
+    if (stored !== null) {
+      setDesktopCollapsed(stored === "true")
+    }
     setMounted(true)
   }, [loadSession])
+
+  const toggleDesktopSidebar = () => {
+    const next = !desktopCollapsed
+    setDesktopCollapsed(next)
+    localStorage.setItem("sidebar-collapsed", String(next))
+  }
 
   useEffect(() => {
     if (!mounted || loading) return
@@ -66,31 +77,33 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-64 bg-card border-r border-border transform transition-transform lg:relative lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 bg-card border-r border-border overflow-hidden transform transition-all duration-300 ease-in-out lg:relative lg:translate-x-0 w-64 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        } ${desktopCollapsed ? "lg:w-0 lg:border-r-0" : "lg:w-64"}`}
       >
-        <div className="h-16 border-b border-border flex items-center px-6">
-          <h1 className="text-lg font-bold text-foreground">CSE Platform</h1>
+        <div className="w-64">
+          <div className="h-16 border-b border-border flex items-center px-6">
+            <h1 className="text-lg font-bold text-foreground">CSE Platform</h1>
+          </div>
+          <nav className="px-4 py-4">
+            {protectedNavigation.map((item) => {
+              const Icon = item.icon
+              const isActive = pathname === item.href
+              return (
+                <Link key={item.href} href={item.href}>
+                  <Button
+                    variant={isActive ? "default" : "ghost"}
+                    className="w-full justify-start gap-2 mb-2"
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {item.name}
+                  </Button>
+                </Link>
+              )
+            })}
+          </nav>
         </div>
-        <nav className="px-4 py-4">
-          {protectedNavigation.map((item) => {
-            const Icon = item.icon
-            const isActive = pathname === item.href
-            return (
-              <Link key={item.href} href={item.href}>
-                <Button
-                  variant={isActive ? "default" : "ghost"}
-                  className="w-full justify-start gap-2 mb-2"
-                  onClick={() => setSidebarOpen(false)}
-                >
-                  <Icon className="h-4 w-4" />
-                  {item.name}
-                </Button>
-              </Link>
-            )
-          })}
-        </nav>
       </aside>
 
       {/* Main content */}
@@ -100,6 +113,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden">
               {sidebarOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+            </Button>
+            <Button variant="ghost" size="icon" onClick={toggleDesktopSidebar} className="hidden lg:flex">
+              <PanelLeft className="h-4 w-4" />
             </Button>
             <h2 className="text-sm font-semibold text-muted-foreground">CSE Investment Platform</h2>
           </div>
