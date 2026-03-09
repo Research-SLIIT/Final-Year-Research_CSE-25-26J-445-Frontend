@@ -12,7 +12,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 const protectedNavigation = [
   { name: "Dashboard", href: "/", icon: BarChart3 },
   { name: "Risk Analysis", href: "/risk", icon: PieChart },
-  { name: "Predict open price", href: "/predict", icon: TrendingUp },
+  { name: "Price Prediction", href: "/predict", icon: TrendingUp },
   { name: "Dividend", href: "/dividend", icon: Banknote },
   { name: "News", href: "/news", icon: Newspaper },
   { name: "Settings", href: "/settings", icon: Settings },
