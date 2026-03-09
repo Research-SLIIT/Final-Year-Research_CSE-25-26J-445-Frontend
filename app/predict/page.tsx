@@ -127,21 +127,116 @@ function AnimatedNumber({ value, decimals = 2, prefix = "" }: { value: number; d
 }
 
 /* ─────────────────────────────────────────────────────── */
-/*  Skeleton loader card                                    */
+/*  Shimmer base block                                      */
 /* ─────────────────────────────────────────────────────── */
-function SkeletonCard({ rows = 3 }: { rows?: number }) {
+function Shimmer({ className = "" }: { className?: string }) {
   return (
-    <Card className="bg-card border-border overflow-hidden">
-      <CardContent className="p-6 space-y-4">
-        {Array.from({ length: rows }).map((_, i) => (
-          <div
-            key={i}
-            className="h-8 rounded-lg bg-muted animate-pulse"
-            style={{ width: `${85 - i * 12}%`, animationDelay: `${i * 120}ms` }}
-          />
+    <div
+      className={`relative overflow-hidden rounded-lg bg-muted/60 ${className}`}
+      style={{
+        backgroundImage:
+          "linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.07) 50%,transparent 100%)",
+        backgroundSize: "200% 100%",
+        animation: "shimmer 1.6s infinite",
+      }}
+    />
+  );
+}
+
+/* ─────────────────────────────────────────────────────── */
+/*  Prediction loading skeleton                            */
+/* ─────────────────────────────────────────────────────── */
+function PredictionSkeleton() {
+  return (
+    <div className="space-y-5">
+      {/* Hero card skeleton */}
+      <div className="rounded-2xl border border-border bg-muted/20 p-6 space-y-5">
+        {/* Symbol + badge row */}
+        <div className="flex items-center gap-3">
+          <Shimmer className="h-8 w-20" />
+          <Shimmer className="h-6 w-16 rounded-full" />
+          <Shimmer className="h-6 w-14 rounded-full ml-auto" />
+        </div>
+        {/* Price trio */}
+        <div className="grid grid-cols-3 gap-4">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="rounded-xl border border-border p-4 space-y-3">
+              <Shimmer className="h-3 w-24" />
+              <Shimmer className="h-10 w-36" />
+              <Shimmer className="h-3 w-8" />
+            </div>
+          ))}
+        </div>
+        {/* Meta strip */}
+        <div className="grid grid-cols-4 gap-3">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="rounded-lg border border-border p-3 space-y-1.5">
+              <Shimmer className="h-2.5 w-full" />
+              <Shimmer className="h-4 w-3/4 mx-auto" />
+            </div>
+          ))}
+        </div>
+      </div>
+      {/* Chart card skeleton */}
+      <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+        <Shimmer className="h-5 w-40" />
+        <Shimmer className="h-2.5 w-64" />
+        <Shimmer className="h-72 w-full rounded-xl" />
+      </div>
+      {/* Reasoning card skeleton */}
+      <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+        <Shimmer className="h-5 w-48" />
+        <Shimmer className="h-16 w-full rounded-xl" />
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="rounded-xl border border-border p-4 space-y-2">
+            <div className="flex items-center gap-2">
+              <Shimmer className="h-4 w-4 rounded-full" />
+              <Shimmer className="h-4 w-48" />
+              <Shimmer className="h-3 w-20 ml-auto rounded-full" />
+            </div>
+            <Shimmer className="h-3 w-5/6" />
+          </div>
         ))}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────── */
+/*  Historical data loading skeleton                       */
+/* ─────────────────────────────────────────────────────── */
+function HistoricalSkeleton() {
+  return (
+    <div className="space-y-5">
+      {/* Snapshot card */}
+      <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+        <Shimmer className="h-5 w-52" />
+        <Shimmer className="h-3.5 w-32" />
+        <div className="grid grid-cols-7 gap-3">
+          {[0, 1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="rounded-xl bg-muted/50 p-3 space-y-2">
+              <Shimmer className="h-2.5 w-full" />
+              <Shimmer className="h-4 w-3/4 mx-auto" />
+            </div>
+          ))}
+        </div>
+      </div>
+      {/* Stat cards */}
+      <div className="grid grid-cols-4 gap-4">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="rounded-xl border border-border bg-card p-5 space-y-2">
+            <Shimmer className="h-3 w-28" />
+            <Shimmer className="h-7 w-36" />
+            <Shimmer className="h-2.5 w-20" />
+          </div>
+        ))}
+      </div>
+      {/* Chart */}
+      <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+        <Shimmer className="h-5 w-56" />
+        <Shimmer className="h-72 w-full rounded-xl" />
+      </div>
+    </div>
   );
 }
 
@@ -322,7 +417,7 @@ export default function PredictPage() {
             {/* Loading skeleton */}
             {loading && (
               <AnimateIn delay={0}>
-                <SkeletonCard rows={4} />
+                <PredictionSkeleton />
               </AnimateIn>
             )}
 
@@ -332,8 +427,8 @@ export default function PredictPage() {
                 {/* ── Hero Result Card ── */}
                 <AnimateIn delay={0}>
                   <div className={`relative overflow-hidden rounded-2xl border p-6 shadow-xl ${isBullish
-                      ? "bg-gradient-to-br from-emerald-500/10 via-green-500/5 to-teal-500/10 border-emerald-500/25"
-                      : "bg-gradient-to-br from-red-500/10 via-rose-500/5 to-orange-500/10 border-red-500/25"
+                    ? "bg-gradient-to-br from-emerald-500/10 via-green-500/5 to-teal-500/10 border-emerald-500/25"
+                    : "bg-gradient-to-br from-red-500/10 via-rose-500/5 to-orange-500/10 border-red-500/25"
                     }`}>
                     {/* decorative blobs */}
                     <div className={`absolute -top-12 -right-12 w-52 h-52 rounded-full blur-3xl pointer-events-none ${isBullish ? "bg-emerald-400/15" : "bg-red-400/15"
@@ -348,8 +443,8 @@ export default function PredictPage() {
                             {output.symbol}
                           </span>
                           <span className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${isBullish
-                              ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
-                              : "bg-red-500/20 text-red-600 dark:text-red-400"
+                            ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                            : "bg-red-500/20 text-red-600 dark:text-red-400"
                             }`}>
                             {isBullish ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
                             {isBullish ? "Bullish" : "Bearish"}
@@ -393,8 +488,8 @@ export default function PredictPage() {
 
                       {/* Predicted open */}
                       <div className={`rounded-xl border p-4 ${isBullish
-                          ? "bg-emerald-500/15 border-emerald-500/30"
-                          : "bg-red-500/15 border-red-500/30"
+                        ? "bg-emerald-500/15 border-emerald-500/30"
+                        : "bg-red-500/15 border-red-500/30"
                         }`}>
                         <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">
                           Predicted Open (Day 5)
@@ -425,10 +520,10 @@ export default function PredictPage() {
                         <div key={m.label} className="rounded-lg bg-background/50 border border-border px-3 py-2.5 text-center">
                           <p className="text-xs text-muted-foreground mb-0.5">{m.label}</p>
                           <p className={`text-sm font-semibold ${m.colored
-                              ? isBullish
-                                ? "text-emerald-600 dark:text-emerald-400"
-                                : "text-red-600 dark:text-red-400"
-                              : "text-foreground"
+                            ? isBullish
+                              ? "text-emerald-600 dark:text-emerald-400"
+                              : "text-red-600 dark:text-red-400"
+                            : "text-foreground"
                             }`}>{m.value}</p>
                         </div>
                       ))}
@@ -528,8 +623,8 @@ export default function PredictPage() {
                                         </div>
                                         <div className="flex items-center gap-3 shrink-0">
                                           <span className={`text-xs font-semibold ${driver.direction === "bullish"
-                                              ? "text-emerald-600 dark:text-emerald-400"
-                                              : "text-red-600 dark:text-red-400"
+                                            ? "text-emerald-600 dark:text-emerald-400"
+                                            : "text-red-600 dark:text-red-400"
                                             }`}>
                                             {driver.direction === "bullish" ? "+" : ""}
                                             {driver.shap_value.toFixed(4)}
@@ -597,8 +692,8 @@ export default function PredictPage() {
                                         color={impact.direction === "bullish" ? "bg-emerald-500" : "bg-red-500"}
                                       />
                                       <span className={`text-xs font-semibold w-16 shrink-0 ${impact.direction === "bullish"
-                                          ? "text-emerald-600 dark:text-emerald-400"
-                                          : "text-red-600 dark:text-red-400"
+                                        ? "text-emerald-600 dark:text-emerald-400"
+                                        : "text-red-600 dark:text-red-400"
                                         }`}>
                                         {impact.direction === "bullish" ? "+" : ""}{impact.total_shap.toFixed(4)}
                                       </span>
@@ -616,10 +711,10 @@ export default function PredictPage() {
                               <div className="bg-muted/50 border border-border p-3 rounded-xl text-center">
                                 <p className="text-xs text-muted-foreground mb-1">Agreement Score</p>
                                 <p className={`text-2xl font-black ${output.explanation.model_agreement.agreement_score >= 0.85
-                                    ? "text-emerald-600 dark:text-emerald-400"
-                                    : output.explanation.model_agreement.agreement_score >= 0.65
-                                      ? "text-yellow-600 dark:text-yellow-400"
-                                      : "text-red-600 dark:text-red-400"
+                                  ? "text-emerald-600 dark:text-emerald-400"
+                                  : output.explanation.model_agreement.agreement_score >= 0.65
+                                    ? "text-yellow-600 dark:text-yellow-400"
+                                    : "text-red-600 dark:text-red-400"
                                   }`}>
                                   {(output.explanation.model_agreement.agreement_score * 100).toFixed(1)}%
                                 </p>
@@ -759,7 +854,7 @@ export default function PredictPage() {
             {/* Loading */}
             {histLoading && (
               <AnimateIn delay={0}>
-                <SkeletonCard rows={5} />
+                <HistoricalSkeleton />
               </AnimateIn>
             )}
 
@@ -780,8 +875,8 @@ export default function PredictPage() {
 
               const changeBadge = (pct: number) => (
                 <span className={`text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-0.5 ${pct >= 0
-                    ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                    : "bg-red-500/15 text-red-600 dark:text-red-400"
+                  ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                  : "bg-red-500/15 text-red-600 dark:text-red-400"
                   }`}>
                   {pct >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
                   {pct >= 0 ? "+" : ""}{pct.toFixed(2)}%
