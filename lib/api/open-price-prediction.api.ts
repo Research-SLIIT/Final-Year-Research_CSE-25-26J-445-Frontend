@@ -136,8 +136,14 @@ function transformBackendResponse(
 }
 
 export interface OpenPriceHistoryPoint {
-  date: string;      // "DD MMM" formatted (e.g. "01 Dec")
-  openPrice: number;
+  date:        string;  // "DD MMM" formatted (e.g. "01 Dec")
+  openPrice:   number;
+  highPrice:   number;
+  lowPrice:    number;
+  closePrice:  number;
+  tradeVolume: number;
+  shareVolume: number;
+  turnover:    number;
 }
 
 /**
@@ -154,12 +160,21 @@ export async function fetchOpenPriceHistory(
     const response = await fetch(url, { method: "GET" });
     if (!response.ok) return [];
     const data = await response.json();
-    const rawHistory: Array<{ date: string; open_price: number }> = data.history ?? [];
+    const rawHistory: Array<{
+      date: string; open_price: number; high_price: number; low_price: number;
+      close_price: number; trade_volume: number; share_volume: number; turnover: number;
+    }> = data.history ?? [];
     return rawHistory.map((point) => {
       const dateObj = new Date(point.date + "T00:00:00"); // force local-time parse
       return {
-        date: dateObj.toLocaleDateString("en-GB", { day: "2-digit", month: "short" }),
-        openPrice: point.open_price,
+        date:        dateObj.toLocaleDateString("en-GB", { day: "2-digit", month: "short" }),
+        openPrice:   point.open_price,
+        highPrice:   point.high_price   ?? 0,
+        lowPrice:    point.low_price    ?? 0,
+        closePrice:  point.close_price  ?? 0,
+        tradeVolume: point.trade_volume ?? 0,
+        shareVolume: point.share_volume ?? 0,
+        turnover:    point.turnover     ?? 0,
       };
     });
   } catch {
