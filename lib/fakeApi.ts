@@ -309,7 +309,7 @@ export const authUpdateProfile = async (
 
 // News API functions — fetch real articles from backend, fall back to mock
 const BACKEND_URL =
-  process.env.NEXT_PUBLIC_SENTIMENT_BACKEND_URL || "http://localhost:8002";
+  process.env.NEXT_PUBLIC_API_GATEWAY_URL || "http://127.0.0.1:3400/api/v1/sentiment";
 
 export const newsList = async (
   query?: string,

@@ -5,6 +5,29 @@ import { useParams, useRouter } from "next/navigation"
 
 import { newsGetById, type NewsArticle } from "@/lib/fakeApi"
 import { analyzeNews, type AnalyzeResponse } from "@/lib/sentimentApi"
+import { fetchTradeSummary, type TradeSummaryItem } from "@/lib/api/market-data.api"
+import companiesData from "@/data/mock/companies.json"
+
+import { usePredictStore } from "@/stores/usePredictStore"
+import { useRiskStore } from "@/stores/useRiskStore"
+import { useDividendStore } from "@/stores/useDividendStore"
+import { TrendingUp, ShieldAlert, Coins } from "lucide-react"
+
+function getCompanySector(ticker: string) {
+  const baseSymbol = ticker.split(".")[0];
+  const company = companiesData.companies.find((c: any) => c.symbol === baseSymbol);
+  return company?.sector && company.sector !== "Unknown"
+    ? company.sector
+    : "Corporate";
+}
+
+function getInitials(name: string) {
+  const words = name.trim().split(/\s+/);
+  if (words.length >= 2) {
+    return (words[0][0] + words[1][0]).toUpperCase();
+  }
+  return words[0][0].toUpperCase();
+}
 
 import { Button } from "@/components/ui/button"
 import {
@@ -15,6 +38,7 @@ import {
 } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { AnalysisBreakdown } from "@/components/analysis/AnalysisBreakdown"
+import { AnalysisDisclaimer } from "@/components/analysis/AnalysisDisclaimer"
 import { ScoreBar } from "@/components/analysis/ScoreBar"
 import { AITerminalStream } from "@/components/news/AITerminalStream"
 import { ArrowLeft } from "lucide-react"
@@ -40,6 +64,32 @@ export default function NewsDetail() {
   const [loading, setLoading] = useState(true)
   const [analyzing, setAnalyzing] = useState(false)
 
+  const setPredictInputs = usePredictStore((state) => state.setInputs)
+  const setRiskInputs = useRiskStore((state) => state.setInputs)
+  const setDividendInputs = useDividendStore((state) => state.setInputs)
+
+  const handleQuickAction = (ticker: string, type: 'predict' | 'risk' | 'dividend') => {
+    // Basic ticker is often needed (without .NXX if it exists)
+    const baseTicker = ticker.split('.')[0];
+    
+    if (type === 'predict') {
+      setPredictInputs({ symbol: ticker });
+      router.push('/predict');
+    } else if (type === 'risk') {
+      setRiskInputs({ 
+        symbol: ticker,
+        dateRange: { start: "", end: "" },
+        riskProfile: "Basic"
+      });
+      router.push('/risk');
+    } else if (type === 'dividend') {
+      setDividendInputs({ symbol: ticker });
+      router.push('/dividend');
+    }
+  }
+  const [marketData, setMarketData] = useState<Record<string, TradeSummaryItem>>({})
+  const [hoveredExampleIndex, setHoveredExampleIndex] = useState<number | null>(null)
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -57,6 +107,20 @@ export default function NewsDetail() {
           setAnalyzing(true)
           const result = await analyzeNews(textToAnalyze)
           setAnalysis(result)
+
+          // Fetch live market data if companies are identified
+          if (result.identified_companies?.[0]) {
+            try {
+              const summary = await fetchTradeSummary();
+              const lookup: Record<string, TradeSummaryItem> = {};
+              summary.forEach(item => {
+                lookup[item.symbol] = item;
+              });
+              setMarketData(lookup);
+            } catch (marketErr) {
+              console.error("Failed to fetch market data:", marketErr);
+            }
+          }
         }
 
       } catch (err) {
@@ -191,7 +255,17 @@ export default function NewsDetail() {
                 {/* ===== Historical reaction mini-chart ===== */}
                 <div className="h-40 w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData}>
+                    <BarChart 
+                      data={chartData}
+                      onMouseMove={(state: any) => {
+                        if (state?.isTooltipActive && state?.activeTooltipIndex !== undefined) {
+                          setHoveredExampleIndex(state.activeTooltipIndex);
+                        } else {
+                          setHoveredExampleIndex(null);
+                        }
+                      }}
+                      onMouseLeave={() => setHoveredExampleIndex(null)}
+                    >
                       <XAxis dataKey="name" hide />
                       <YAxis
                         tickFormatter={(value) => `${value}%`}
@@ -225,7 +299,11 @@ export default function NewsDetail() {
                 {examples.map((ex, idx) => (
                   <div
                     key={idx}
-                    className="p-4 rounded-lg border border-border bg-muted/30"
+                    className={`p-4 rounded-lg border transition-all duration-300 ${
+                      hoveredExampleIndex === idx 
+                        ? 'bg-blue-500/10 border-blue-500/50 scale-[1.02] shadow-sm shadow-blue-500/10' 
+                        : 'bg-muted/30 border-border'
+                    }`}
                   >
                     <div className="flex justify-between items-start gap-4">
                       <div>
@@ -351,7 +429,7 @@ export default function NewsDetail() {
                       <div className="mt-2">
                         <ScoreBar
                           score={impactScore}
-                          threshold={0.5}
+                          threshold={analysis?.explanation?.decision_tree?.[0]?.threshold ?? 0.3}
                           label={`Impact strength (${(impactScore * 100).toFixed(
                             0
                           )}%)`}
@@ -436,6 +514,156 @@ export default function NewsDetail() {
               )}
             </CardContent>
           </Card>
+
+          {/* -------- Identified Companies -------- */}
+          {!analyzing && analysis && analysis.identified_companies && analysis.identified_companies.length > 0 && (
+            <Card className="mt-6 border-blue-500/20 bg-blue-500/5 overflow-hidden relative">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+                  Identified Entities
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-3 pb-4 space-y-4">
+                {analysis.identified_companies.map((company, idx) => {
+                  const data = marketData[company.ticker];
+                  return (
+                    <div key={idx} className="flex flex-col gap-4 p-5 rounded-2xl bg-slate-900/40 border border-slate-800/50 hover:bg-slate-900/60 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/10 hover:border-blue-500/40 group overflow-hidden relative">
+                      {/* Interactive background glow */}
+                      <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-500/10 transition-colors" />
+                      
+                      {/* Top Row: Identity & Price */}
+                      <div className="flex justify-between items-start relative z-10">
+                        <div className="flex gap-4">
+                          <div className="relative h-14 w-14 shrink-0 rounded-2xl overflow-hidden bg-slate-800 border-2 border-slate-700/50 shadow-inner group-hover:scale-105 transition-transform duration-500">
+                            <img 
+                              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(getInitials(company.company_name))}&background=2563eb&color=fff&size=100&bold=true&font-size=0.4`} 
+                              alt={company.company_name}
+                              className="h-full w-full object-cover"
+                            />
+                            {data && (
+                              <div className="absolute top-0 right-0 p-1">
+                                <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <h4 className="text-sm font-bold truncate text-white group-hover:text-blue-400 transition-colors" title={company.company_name}>
+                                {company.company_name}
+                              </h4>
+                            </div>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge variant="outline" className="text-[10px] px-2 py-0 h-4.5 bg-slate-800/50 text-blue-300 border-blue-500/30 font-mono tracking-wider">
+                                {company.ticker}
+                              </Badge>
+                              <span className="text-[11px] text-slate-400 font-medium">
+                                {getCompanySector(company.ticker)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {data && (
+                          <div className="flex flex-col items-end">
+                            <div className="text-lg font-black text-white tracking-tighter">
+                              <span className="text-[10px] text-slate-500 mr-1 font-medium">LKR</span>
+                              {data.price.toFixed(2)}
+                            </div>
+                            <Badge 
+                              variant="secondary" 
+                              className={`text-[10px] px-2 py-0.5 mt-1 border-0 font-bold ${
+                                data.percentageChange >= 0 
+                                  ? "bg-emerald-500/20 text-emerald-400" 
+                                  : "bg-red-500/20 text-red-400"
+                              }`}
+                            >
+                              {data.percentageChange >= 0 ? "↑" : "↓"} {Math.abs(data.percentageChange).toFixed(2)}%
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Middle: Market Quick Stats */}
+                      {data && (
+                        <div className="grid grid-cols-3 gap-2 p-3 rounded-xl bg-slate-950/40 border border-slate-800/30 relative z-10 transition-colors group-hover:bg-slate-950/60">
+                          <div className="flex flex-col">
+                            <span className="text-[9px] uppercase tracking-widest text-slate-500 font-bold">High</span>
+                            <span className="text-xs font-semibold text-slate-200 mt-0.5">{(data.high || data.price).toFixed(2)}</span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-[9px] uppercase tracking-widest text-slate-500 font-bold">Low</span>
+                            <span className="text-xs font-semibold text-slate-200 mt-0.5">{(data.low || data.price).toFixed(2)}</span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-[9px] uppercase tracking-widest text-slate-500 font-bold">Volume</span>
+                            <span className="text-xs font-semibold text-slate-200 mt-0.5 truncate">
+                              {(data.sharevolume || data.volume || 0).toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                      
+                      <div className="relative z-10 pt-1">
+                        <div className="flex justify-between items-center mb-1.5 px-0.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Extraction Match</span>
+                          </div>
+                          <span className="text-[10.5px] font-black text-blue-400">{(company.confidence).toFixed(0)}%</span>
+                        </div>
+                        <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden shadow-inner">
+                          <div 
+                            className="h-full bg-gradient-to-r from-blue-700 via-blue-500 to-indigo-400 rounded-full transition-all duration-[2000ms] cubic-bezier(0.34, 1.56, 0.64, 1)" 
+                            style={{ width: `${company.confidence}%` }} 
+                          />
+                        </div>
+                      </div>
+
+                      {/* Quick Actions Row */}
+                      <div className="relative z-10 pt-3 flex flex-col gap-2 border-t border-slate-800/30">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-9 w-full text-[11px] font-bold bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 hover:text-blue-300 border border-blue-500/20 rounded-lg flex items-center justify-start gap-2.5 transition-all px-4"
+                          onClick={() => handleQuickAction(company.ticker, 'predict')}
+                        >
+                          <TrendingUp className="h-3.5 w-3.5" />
+                          Price Prediction
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-9 w-full text-[11px] font-bold bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 hover:text-amber-300 border border-amber-500/20 rounded-lg flex items-center justify-start gap-2.5 transition-all px-4"
+                          onClick={() => handleQuickAction(company.ticker, 'risk')}
+                        >
+                          <ShieldAlert className="h-3.5 w-3.5" />
+                          Risk Analysis
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-9 w-full text-[11px] font-bold bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 hover:text-emerald-300 border border-emerald-500/20 rounded-lg flex items-center justify-start gap-2.5 transition-all px-4"
+                          onClick={() => handleQuickAction(company.ticker, 'dividend')}
+                        >
+                          <Coins className="h-3.5 w-3.5" />
+                          Dividend Prediction
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* -------- Disclaimer -------- */}
+          {!analyzing && analysis && (
+            <div className="mt-6">
+              <AnalysisDisclaimer />
+            </div>
+          )}
         </div>
       </div>
     </div>

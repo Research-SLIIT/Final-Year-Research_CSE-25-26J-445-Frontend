@@ -63,85 +63,21 @@ export interface AnalyzeResponse {
 // ================= HELPERS =================
 
 function buildExplanationFromRaw(raw: any): ExplanationData | undefined {
-  if (!raw) return undefined
-
-  const impact = raw.impact as "impactful" | "not_impactful" | undefined
-  const direction = raw.direction as string | undefined
-
-  const stage1Probability =
-    typeof raw.stage1_probability === "number"
-      ? raw.stage1_probability
-      : undefined
-
-  const debug = raw.debug ?? {}
-  const mlDirection = debug.ml_direction as string | undefined
-  const mlScore =
-    typeof debug.ml_score === "number" ? debug.ml_score : undefined
-
-  const lexicon = debug.lexicon ?? {}
-  const lexScore =
-    typeof lexicon.score === "number" ? lexicon.score : undefined
-  const lexConfidence =
-    typeof lexicon.confidence === "number" ? lexicon.confidence : undefined
-  const lexSource =
-    typeof lexicon.source === "string"
-      ? lexicon.source
-      : "Lexicon Sentiment Model"
-
-  const finalScore =
-    typeof debug.final_score === "number"
-      ? debug.final_score
-      : stage1Probability ?? mlScore ?? lexScore ?? 0
-
-  const modelConfidence = lexConfidence ?? mlScore ?? 0.8
-
-  const decision_tree: DecisionTreeStage[] = [
-    {
-      passed:
-        impact === "impactful"
-          ? true
-          : impact === "not_impactful"
-          ? false
-          : stage1Probability !== undefined
-          ? stage1Probability >= 0.5
-          : undefined,
-      description:
-        "Model assessed whether this news is likely to be market-moving based on content, entities and historical patterns.",
-      score: stage1Probability,
-      threshold: 0.5,
-    },
-    {
-      description:
-        "ML model predicted the likely market direction using historical price reactions and contextual information.",
-      direction: mlDirection ?? direction ?? undefined,
-      raw_score: mlScore,
-      confidence: mlScore,
-      source: "ML Direction Model",
-    },
-    {
-      description: `Lexicon-based sentiment model (${lexSource}) evaluated the tone of the news text.`,
-      score: lexScore,
-      confidence: lexConfidence,
-    },
-    {
-      description:
-        "Fusion layer combined ML and lexicon signals to produce the final prediction.",
-      weights: { "ML Model": 0.6, "Lexicon Analysis": 0.4 },
-    },
-  ]
-
+  if (!raw || !raw.explanation) return undefined
+  
+  // Just return the beautifully formatted explanation straight from the backend API
   return {
-    decision_tree,
-    final_decision: (direction ?? mlDirection ?? "neutral").toUpperCase(),
-    final_score: finalScore,
-    model_confidence: modelConfidence,
+    decision_tree: raw.explanation.decision_tree || [],
+    final_decision: raw.explanation.final_decision || raw.direction?.toUpperCase() || "NEUTRAL",
+    final_score: raw.explanation.final_score || 0,
+    model_confidence: raw.explanation.model_confidence || 0,
   }
 }
 
 // ================= API CALL =================
 
 export async function analyzeNews(text: string): Promise<AnalyzeResponse> {
-  const res = await fetch("http://127.0.0.1:8002/analyze", {
+  const res = await fetch("http://127.0.0.1:3400/api/v1/sentiment/analyze", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text }),
