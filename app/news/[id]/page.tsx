@@ -8,6 +8,11 @@ import { analyzeNews, type AnalyzeResponse } from "@/lib/sentimentApi"
 import { fetchTradeSummary, type TradeSummaryItem } from "@/lib/api/market-data.api"
 import companiesData from "@/data/mock/companies.json"
 
+import { usePredictStore } from "@/stores/usePredictStore"
+import { useRiskStore } from "@/stores/useRiskStore"
+import { useDividendStore } from "@/stores/useDividendStore"
+import { TrendingUp, ShieldAlert, Coins } from "lucide-react"
+
 function getCompanySector(ticker: string) {
   const baseSymbol = ticker.split(".")[0];
   const company = companiesData.companies.find((c: any) => c.symbol === baseSymbol);
@@ -58,6 +63,30 @@ export default function NewsDetail() {
   const [analysis, setAnalysis] = useState<AnalyzeResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [analyzing, setAnalyzing] = useState(false)
+
+  const setPredictInputs = usePredictStore((state) => state.setInputs)
+  const setRiskInputs = useRiskStore((state) => state.setInputs)
+  const setDividendInputs = useDividendStore((state) => state.setInputs)
+
+  const handleQuickAction = (ticker: string, type: 'predict' | 'risk' | 'dividend') => {
+    // Basic ticker is often needed (without .NXX if it exists)
+    const baseTicker = ticker.split('.')[0];
+    
+    if (type === 'predict') {
+      setPredictInputs({ symbol: ticker });
+      router.push('/predict');
+    } else if (type === 'risk') {
+      setRiskInputs({ 
+        symbol: ticker,
+        dateRange: { start: "", end: "" },
+        riskProfile: "Basic"
+      });
+      router.push('/risk');
+    } else if (type === 'dividend') {
+      setDividendInputs({ symbol: ticker });
+      router.push('/dividend');
+    }
+  }
   const [marketData, setMarketData] = useState<Record<string, TradeSummaryItem>>({})
   const [hoveredExampleIndex, setHoveredExampleIndex] = useState<number | null>(null)
 
@@ -590,6 +619,37 @@ export default function NewsDetail() {
                             style={{ width: `${company.confidence}%` }} 
                           />
                         </div>
+                      </div>
+
+                      {/* Quick Actions Row */}
+                      <div className="relative z-10 pt-3 flex flex-col gap-2 border-t border-slate-800/30">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-9 w-full text-[11px] font-bold bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 hover:text-blue-300 border border-blue-500/20 rounded-lg flex items-center justify-start gap-2.5 transition-all px-4"
+                          onClick={() => handleQuickAction(company.ticker, 'predict')}
+                        >
+                          <TrendingUp className="h-3.5 w-3.5" />
+                          Price Prediction
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-9 w-full text-[11px] font-bold bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 hover:text-amber-300 border border-amber-500/20 rounded-lg flex items-center justify-start gap-2.5 transition-all px-4"
+                          onClick={() => handleQuickAction(company.ticker, 'risk')}
+                        >
+                          <ShieldAlert className="h-3.5 w-3.5" />
+                          Risk Analysis
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-9 w-full text-[11px] font-bold bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 hover:text-emerald-300 border border-emerald-500/20 rounded-lg flex items-center justify-start gap-2.5 transition-all px-4"
+                          onClick={() => handleQuickAction(company.ticker, 'dividend')}
+                        >
+                          <Coins className="h-3.5 w-3.5" />
+                          Dividend Prediction
+                        </Button>
                       </div>
                     </div>
                   );
