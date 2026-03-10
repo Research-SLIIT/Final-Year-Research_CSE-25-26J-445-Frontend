@@ -1075,7 +1075,7 @@ export default function PredictPage() {
                             <tbody>
                               {[...sliced].reverse().map((row, i) => (
                                 <tr
-                                  key={row.date}
+                                  key={`${row.date}-${i}`}
                                   className={`border-b border-border last:border-0 transition-colors duration-150 hover:bg-muted/30 ${i % 2 === 0 ? "" : "bg-muted/10"
                                     }`}
                                 >
