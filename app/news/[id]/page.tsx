@@ -15,6 +15,14 @@ function getCompanySector(ticker: string) {
     : "Corporate";
 }
 
+function getInitials(name: string) {
+  const words = name.trim().split(/\s+/);
+  if (words.length >= 2) {
+    return (words[0][0] + words[1][0]).toUpperCase();
+  }
+  return words[0][0].toUpperCase();
+}
+
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -24,6 +32,7 @@ import {
 } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { AnalysisBreakdown } from "@/components/analysis/AnalysisBreakdown"
+import { AnalysisDisclaimer } from "@/components/analysis/AnalysisDisclaimer"
 import { ScoreBar } from "@/components/analysis/ScoreBar"
 import { AITerminalStream } from "@/components/news/AITerminalStream"
 import { ArrowLeft } from "lucide-react"
@@ -375,7 +384,7 @@ export default function NewsDetail() {
                       <div className="mt-2">
                         <ScoreBar
                           score={impactScore}
-                          threshold={0.5}
+                          threshold={analysis?.explanation?.decision_tree?.[0]?.threshold ?? 0.3}
                           label={`Impact strength (${(impactScore * 100).toFixed(
                             0
                           )}%)`}
@@ -478,7 +487,7 @@ export default function NewsDetail() {
                       {/* Generative Logo Avatar */}
                       <div className="relative h-12 w-12 shrink-0 rounded-full overflow-hidden border-2 border-background shadow-sm shadow-blue-500/20 group-hover:scale-105 transition-transform">
                         <img 
-                          src={`https://ui-avatars.com/api/?name=${encodeURIComponent(company.company_name)}&background=2563eb&color=fff&size=100&bold=true&font-size=0.4`} 
+                          src={`https://ui-avatars.com/api/?name=${encodeURIComponent(getInitials(company.company_name))}&background=2563eb&color=fff&size=100&bold=true&font-size=0.4`} 
                           alt={company.company_name}
                           className="h-full w-full object-cover"
                         />
@@ -518,6 +527,13 @@ export default function NewsDetail() {
                 ))}
               </CardContent>
             </Card>
+          )}
+
+          {/* -------- Disclaimer -------- */}
+          {!analyzing && analysis && (
+            <div className="mt-6">
+              <AnalysisDisclaimer />
+            </div>
           )}
         </div>
       </div>
