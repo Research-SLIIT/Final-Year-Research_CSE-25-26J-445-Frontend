@@ -706,29 +706,35 @@ export default function PredictPage() {
 
                           {/* Model agreement */}
                           <div className="pt-3 border-t border-border">
-                            <p className="text-sm font-semibold mb-3">Model Agreement</p>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                              <div className="bg-muted/50 border border-border p-3 rounded-xl text-center">
-                                <p className="text-xs text-muted-foreground mb-1">Agreement Score</p>
-                                <p className={`text-2xl font-black ${output.explanation.model_agreement.agreement_score >= 0.85
-                                  ? "text-emerald-600 dark:text-emerald-400"
-                                  : output.explanation.model_agreement.agreement_score >= 0.65
-                                    ? "text-yellow-600 dark:text-yellow-400"
-                                    : "text-red-600 dark:text-red-400"
-                                  }`}>
-                                  {(output.explanation.model_agreement.agreement_score * 100).toFixed(1)}%
-                                </p>
-                              </div>
-                              {Object.entries(output.explanation.model_agreement.per_model_predictions).map(([model, pred]) => (
-                                <div key={model} className="bg-muted/50 border border-border p-3 rounded-xl text-center">
-                                  <p className="text-xs text-muted-foreground mb-1 capitalize">{model}</p>
-                                  <p className={`text-sm font-bold ${pred > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
-                                    }`}>
-                                    {pred > 0 ? "+" : ""}{(pred * 100).toFixed(2)}%
-                                  </p>
-                                </div>
-                              ))}
-                            </div>
+                            {(() => {
+                              const score = output.explanation.model_agreement.agreement_score * 100;
+                              const textColor = score >= 70
+                                ? "text-emerald-600 dark:text-emerald-400"
+                                : score >= 50
+                                  ? "text-yellow-600 dark:text-yellow-400"
+                                  : "text-red-600 dark:text-red-400";
+                              const barColor = score >= 70
+                                ? "bg-emerald-500"
+                                : score >= 50
+                                  ? "bg-yellow-500"
+                                  : "bg-red-500";
+                              return (
+                                <>
+                                  <div className="flex items-center justify-between">
+                                    <p className="text-sm text-muted-foreground">Model Agreement</p>
+                                    <span className={`text-sm font-medium ${textColor}`}>
+                                      {score.toFixed(1)}%
+                                    </span>
+                                  </div>
+                                  <div className="mt-2 h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                                    <div
+                                      className={`h-full rounded-full ${barColor}`}
+                                      style={{ width: `${score.toFixed(1)}%` }}
+                                    />
+                                  </div>
+                                </>
+                              );
+                            })()}
                           </div>
                         </>
                       ) : (
@@ -763,7 +769,7 @@ export default function PredictPage() {
                       </div>
                       <Accordion type="single" collapsible>
                         <AccordionItem value="features">
-                          <AccordionTrigger>Model Features (Collapsible)</AccordionTrigger>
+                          <AccordionTrigger>Model Features</AccordionTrigger>
                           <AccordionContent>
                             <div className="space-y-2 text-sm">
                               <p className="font-medium">The model uses the following features:</p>
@@ -1075,7 +1081,7 @@ export default function PredictPage() {
                             <tbody>
                               {[...sliced].reverse().map((row, i) => (
                                 <tr
-                                  key={row.date}
+                                  key={`${row.date}-${i}`}
                                   className={`border-b border-border last:border-0 transition-colors duration-150 hover:bg-muted/30 ${i % 2 === 0 ? "" : "bg-muted/10"
                                     }`}
                                 >
