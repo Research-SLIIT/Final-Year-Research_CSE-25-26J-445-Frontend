@@ -2,12 +2,14 @@
 
 import { useState } from "react"
 import { analyzeNews, type AnalyzeResponse } from "@/lib/sentimentApi"
+import { fetchTradeSummary, type TradeSummaryItem } from "@/lib/api/market-data.api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { AnalysisBreakdown } from "@/components/analysis/AnalysisBreakdown"
 import { AnalysisDisclaimer } from "@/components/analysis/AnalysisDisclaimer"
+import { AITerminalStream } from "@/components/news/AITerminalStream"
 import { ScoreBar } from "@/components/analysis/ScoreBar"
 import companiesData from "@/data/mock/companies.json"
 
@@ -31,6 +33,7 @@ export default function AnalyzeBox() {
   const [text, setText] = useState("")
   const [loading, setLoading] = useState(false)
   const [analysis, setAnalysis] = useState<AnalyzeResponse | null>(null)
+  const [marketData, setMarketData] = useState<Record<string, TradeSummaryItem>>({})
   const [error, setError] = useState<string | null>(null)
 
   const handleAnalyze = async () => {
@@ -43,6 +46,20 @@ export default function AnalyzeBox() {
     try {
       const result = await analyzeNews(text)
       setAnalysis(result)
+
+      // Fetch live market data
+      if (result.identified_companies?.length > 0) {
+        try {
+          const summary = await fetchTradeSummary();
+          const lookup: Record<string, TradeSummaryItem> = {};
+          summary.forEach(item => {
+            lookup[item.symbol] = item;
+          });
+          setMarketData(lookup);
+        } catch (marketErr) {
+          console.error("Failed to fetch market data:", marketErr);
+        }
+      }
     } catch (err) {
       setError("Failed to analyze news. Please try again.")
     } finally {
@@ -78,7 +95,13 @@ export default function AnalyzeBox() {
           <p className="text-sm text-red-500">{error}</p>
         )}
 
-        {analysis && (
+        {loading && (
+          <div className="pt-4 border-t border-border">
+            <AITerminalStream />
+          </div>
+        )}
+
+        {analysis && !loading && (
           <div className="pt-4 border-t border-border space-y-4">
             {/* Analysis Breakdown Component */}
             {analysis.explanation && (
@@ -121,38 +144,88 @@ export default function AnalyzeBox() {
 
             {/* Identified Companies (Premium Style) */}
             {analysis.identified_companies.length > 0 && (
-              <div className="space-y-3">
-                <p className="text-sm font-medium flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
-                  Identified Entities
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {analysis.identified_companies.map((company, idx) => (
-                    <div key={idx} className="flex flex-col gap-2 p-3 rounded-xl bg-background/60 border border-border/50 hover:bg-background/90 transition-all hover:border-blue-500/30 group">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 shrink-0 rounded-full overflow-hidden border border-border shadow-sm">
-                          <img 
-                            src={`https://ui-avatars.com/api/?name=${encodeURIComponent(getInitials(company.company_name))}&background=2563eb&color=fff&size=100&bold=true&font-size=0.4`} 
-                            alt={company.company_name}
-                            className="h-full w-full object-cover"
-                          />
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 px-1">
+                  <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                  <p className="text-sm font-bold text-slate-300 uppercase tracking-tight">Identified Entities</p>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {analysis.identified_companies.map((company, idx) => {
+                    const data = marketData[company.ticker];
+                    return (
+                      <div key={idx} className="flex flex-col gap-3 p-4 rounded-2xl bg-slate-900/40 border border-slate-800/50 hover:bg-slate-900/60 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/5 hover:border-blue-500/30 group overflow-hidden relative">
+                        {/* Identity & Price Row */}
+                        <div className="flex justify-between items-start relative z-10">
+                          <div className="flex gap-3">
+                            <div className="relative h-11 w-11 shrink-0 rounded-xl overflow-hidden bg-slate-800 border border-slate-700/50 group-hover:scale-105 transition-transform duration-500">
+                              <img 
+                                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(getInitials(company.company_name))}&background=2563eb&color=fff&size=100&bold=true&font-size=0.4`} 
+                                alt={company.company_name}
+                                className="h-full w-full object-cover"
+                              />
+                            </div>
+                            
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-xs font-bold truncate text-white group-hover:text-blue-400 transition-colors" title={company.company_name}>
+                                {company.company_name}
+                              </h4>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 bg-slate-800/50 text-blue-300 border-blue-500/20 font-mono">
+                                  {company.ticker}
+                                </Badge>
+                                <span className="text-[10px] text-slate-500 font-medium">
+                                  {getCompanySector(company.ticker)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {data && (
+                            <div className="flex flex-col items-end">
+                              <div className="text-sm font-black text-white whitespace-nowrap">
+                                <span className="text-[9px] text-slate-500 mr-0.5 font-medium">LKR</span>
+                                {data.price.toFixed(2)}
+                              </div>
+                              <div className={`text-[10px] font-bold mt-0.5 ${
+                                data.percentageChange >= 0 ? "text-emerald-400" : "text-red-400"
+                              }`}>
+                                {data.percentageChange >= 0 ? "↑" : "↓"} {Math.abs(data.percentageChange).toFixed(2)}%
+                              </div>
+                            </div>
+                          )}
                         </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold truncate group-hover:text-blue-400 transition-colors">
-                            {company.company_name}
-                          </p>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-blue-500/10 text-blue-400 border-blue-500/20">
-                              {company.ticker}
-                            </Badge>
-                            <span className="text-[10px] text-muted-foreground">
-                              {getCompanySector(company.ticker)}
-                            </span>
+
+                        {/* Confidence Indicator */}
+                        <div className="relative z-10 space-y-1.5">
+                          <div className="flex justify-between items-center px-0.5">
+                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">Match Confidence</span>
+                            <span className="text-[10px] font-black text-blue-400">{(company.confidence).toFixed(0)}%</span>
+                          </div>
+                          <div className="h-1 w-full bg-slate-800/50 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-gradient-to-r from-blue-600 to-indigo-400 rounded-full transition-all duration-1000 ease-out" 
+                              style={{ width: `${company.confidence}%` }} 
+                            />
                           </div>
                         </div>
+
+                        {/* Compact Stats if data exists */}
+                        {data && (
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-1 pt-2 border-t border-slate-800/30 relative z-10">
+                            <div className="flex justify-between items-center">
+                              <span className="text-[9px] text-slate-500 font-bold uppercase">High</span>
+                              <span className="text-[10px] font-semibold text-slate-300">{(data.high || data.price).toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-[9px] text-slate-500 font-bold uppercase">Low</span>
+                              <span className="text-[10px] font-semibold text-slate-300">{(data.low || data.price).toFixed(2)}</span>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}

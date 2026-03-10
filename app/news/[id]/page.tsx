@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation"
 
 import { newsGetById, type NewsArticle } from "@/lib/fakeApi"
 import { analyzeNews, type AnalyzeResponse } from "@/lib/sentimentApi"
+import { fetchTradeSummary, type TradeSummaryItem } from "@/lib/api/market-data.api"
 import companiesData from "@/data/mock/companies.json"
 
 function getCompanySector(ticker: string) {
@@ -57,6 +58,7 @@ export default function NewsDetail() {
   const [analysis, setAnalysis] = useState<AnalyzeResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [analyzing, setAnalyzing] = useState(false)
+  const [marketData, setMarketData] = useState<Record<string, TradeSummaryItem>>({})
   const [hoveredExampleIndex, setHoveredExampleIndex] = useState<number | null>(null)
 
   useEffect(() => {
@@ -76,6 +78,20 @@ export default function NewsDetail() {
           setAnalyzing(true)
           const result = await analyzeNews(textToAnalyze)
           setAnalysis(result)
+
+          // Fetch live market data if companies are identified
+          if (result.identified_companies?.[0]) {
+            try {
+              const summary = await fetchTradeSummary();
+              const lookup: Record<string, TradeSummaryItem> = {};
+              summary.forEach(item => {
+                lookup[item.symbol] = item;
+              });
+              setMarketData(lookup);
+            } catch (marketErr) {
+              console.error("Failed to fetch market data:", marketErr);
+            }
+          }
         }
 
       } catch (err) {
@@ -480,51 +496,104 @@ export default function NewsDetail() {
                   Identified Entities
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {analysis.identified_companies.map((company, idx) => (
-                  <div key={idx} className="flex flex-col gap-3 p-4 rounded-xl bg-background/60 border border-border/50 hover:bg-background/90 transition-all hover:shadow-md hover:border-blue-500/30 group">
-                    <div className="flex items-start gap-4">
-                      {/* Generative Logo Avatar */}
-                      <div className="relative h-12 w-12 shrink-0 rounded-full overflow-hidden border-2 border-background shadow-sm shadow-blue-500/20 group-hover:scale-105 transition-transform">
-                        <img 
-                          src={`https://ui-avatars.com/api/?name=${encodeURIComponent(getInitials(company.company_name))}&background=2563eb&color=fff&size=100&bold=true&font-size=0.4`} 
-                          alt={company.company_name}
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
+              <CardContent className="px-3 pb-4 space-y-4">
+                {analysis.identified_companies.map((company, idx) => {
+                  const data = marketData[company.ticker];
+                  return (
+                    <div key={idx} className="flex flex-col gap-4 p-5 rounded-2xl bg-slate-900/40 border border-slate-800/50 hover:bg-slate-900/60 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/10 hover:border-blue-500/40 group overflow-hidden relative">
+                      {/* Interactive background glow */}
+                      <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-500/10 transition-colors" />
                       
-                      <div className="flex-1 min-w-0 flex flex-col justify-center mt-0.5">
-                        <p className="text-sm font-semibold truncate text-foreground group-hover:text-blue-400 transition-colors" title={company.company_name}>
-                          {company.company_name}
-                        </p>
-                        
-                        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                          <Badge variant="secondary" className="text-[10px] px-2 py-0 h-5 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 font-mono border-blue-500/20">
-                            {company.ticker}
-                          </Badge>
-                          <div className="w-1 h-1 rounded-full bg-border" />
-                          <span className="text-[11px] text-muted-foreground font-medium">
-                            {getCompanySector(company.ticker)}
-                          </span>
+                      {/* Top Row: Identity & Price */}
+                      <div className="flex justify-between items-start relative z-10">
+                        <div className="flex gap-4">
+                          <div className="relative h-14 w-14 shrink-0 rounded-2xl overflow-hidden bg-slate-800 border-2 border-slate-700/50 shadow-inner group-hover:scale-105 transition-transform duration-500">
+                            <img 
+                              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(getInitials(company.company_name))}&background=2563eb&color=fff&size=100&bold=true&font-size=0.4`} 
+                              alt={company.company_name}
+                              className="h-full w-full object-cover"
+                            />
+                            {data && (
+                              <div className="absolute top-0 right-0 p-1">
+                                <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <h4 className="text-sm font-bold truncate text-white group-hover:text-blue-400 transition-colors" title={company.company_name}>
+                                {company.company_name}
+                              </h4>
+                            </div>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge variant="outline" className="text-[10px] px-2 py-0 h-4.5 bg-slate-800/50 text-blue-300 border-blue-500/30 font-mono tracking-wider">
+                                {company.ticker}
+                              </Badge>
+                              <span className="text-[11px] text-slate-400 font-medium">
+                                {getCompanySector(company.ticker)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {data && (
+                          <div className="flex flex-col items-end">
+                            <div className="text-lg font-black text-white tracking-tighter">
+                              <span className="text-[10px] text-slate-500 mr-1 font-medium">LKR</span>
+                              {data.price.toFixed(2)}
+                            </div>
+                            <Badge 
+                              variant="secondary" 
+                              className={`text-[10px] px-2 py-0.5 mt-1 border-0 font-bold ${
+                                data.percentageChange >= 0 
+                                  ? "bg-emerald-500/20 text-emerald-400" 
+                                  : "bg-red-500/20 text-red-400"
+                              }`}
+                            >
+                              {data.percentageChange >= 0 ? "↑" : "↓"} {Math.abs(data.percentageChange).toFixed(2)}%
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Middle: Market Quick Stats */}
+                      {data && (
+                        <div className="grid grid-cols-3 gap-2 p-3 rounded-xl bg-slate-950/40 border border-slate-800/30 relative z-10 transition-colors group-hover:bg-slate-950/60">
+                          <div className="flex flex-col">
+                            <span className="text-[9px] uppercase tracking-widest text-slate-500 font-bold">High</span>
+                            <span className="text-xs font-semibold text-slate-200 mt-0.5">{(data.high || data.price).toFixed(2)}</span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-[9px] uppercase tracking-widest text-slate-500 font-bold">Low</span>
+                            <span className="text-xs font-semibold text-slate-200 mt-0.5">{(data.low || data.price).toFixed(2)}</span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-[9px] uppercase tracking-widest text-slate-500 font-bold">Volume</span>
+                            <span className="text-xs font-semibold text-slate-200 mt-0.5 truncate">
+                              {(data.sharevolume || data.volume || 0).toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                      
+                      <div className="relative z-10 pt-1">
+                        <div className="flex justify-between items-center mb-1.5 px-0.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Extraction Match</span>
+                          </div>
+                          <span className="text-[10.5px] font-black text-blue-400">{(company.confidence).toFixed(0)}%</span>
+                        </div>
+                        <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden shadow-inner">
+                          <div 
+                            className="h-full bg-gradient-to-r from-blue-700 via-blue-500 to-indigo-400 rounded-full transition-all duration-[2000ms] cubic-bezier(0.34, 1.56, 0.64, 1)" 
+                            style={{ width: `${company.confidence}%` }} 
+                          />
                         </div>
                       </div>
                     </div>
-                    
-                    {/* Animated Confidence Meter */}
-                    <div className="mt-2 space-y-1.5">
-                      <div className="flex justify-between items-center text-[10.5px] font-medium text-muted-foreground">
-                        <span>Extraction Confidence Match</span>
-                        <span className="text-blue-400 group-hover:text-blue-300 transition-colors">{(company.confidence).toFixed(0)}%</span>
-                      </div>
-                      <div className="h-2 w-full bg-slate-800/50 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-gradient-to-r from-blue-600 to-indigo-400 rounded-full transition-all duration-[1500ms] ease-out" 
-                          style={{ width: `${company.confidence}%` }} 
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </CardContent>
             </Card>
           )}
