@@ -3,6 +3,7 @@
 import type React from "react"
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
 import { BarChart3, TrendingUp, PieChart, Settings, Menu, X, LogOut, User, Newspaper, Banknote, PanelLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -77,13 +78,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 bg-card border-r border-border overflow-hidden transform transition-all duration-300 ease-in-out lg:relative lg:translate-x-0 w-64 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } ${desktopCollapsed ? "lg:w-0 lg:border-r-0" : "lg:w-64"}`}
+        className={`fixed inset-y-0 left-0 z-40 bg-card border-r border-border overflow-hidden transform transition-all duration-300 ease-in-out lg:relative lg:translate-x-0 w-64 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          } ${desktopCollapsed ? "lg:w-0 lg:border-r-0" : "lg:w-64"}`}
       >
         <div className="w-64">
-          <div className="h-16 border-b border-border flex items-center px-6">
-            <h1 className="text-lg font-bold text-foreground">CSE Platform</h1>
+          <div className="h-16 border-b border-border flex items-center px-6 gap-3">
+            <Image src="/logoB.png" alt="Invest Wise Logo" width={32} height={32} className="rounded-md" />
+            <h1 className="text-lg font-bold text-foreground">Invest Wise</h1>
           </div>
           <nav className="px-4 py-4">
             {protectedNavigation.map((item) => {

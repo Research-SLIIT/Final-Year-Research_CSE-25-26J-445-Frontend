@@ -73,6 +73,13 @@ export function ZScoreGauge({ currentScore, predictedScore, showBothScores = tru
 
     return (
         <div className="w-full space-y-6">
+            {/* Header label */}
+            <div className="flex justify-center">
+                <span className="text-[9px] font-bold uppercase tracking-widest text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-full">
+                    Altman Z-Score Threshold Meter
+                </span>
+            </div>
+
             {/* Zone Legend */}
             <div className="flex items-center justify-center gap-6 text-xs">
                 <div className="flex items-center gap-1.5">
