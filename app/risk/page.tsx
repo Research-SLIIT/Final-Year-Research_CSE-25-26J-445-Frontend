@@ -6,6 +6,7 @@ import { useRiskStore } from "@/stores/useRiskStore"
 import { useFinancialHealth } from "@/hooks/use-financial-health"
 import { useCompanyHealthHistory } from "@/hooks/use-company-health-history"
 import { useReportHealthCheck } from "@/hooks/use-report-health-check"
+import { useCompanyProfile } from "@/hooks/use-company-profile"
 import { TickerSearch } from "@/components/ticker-search"
 import { KpiCard } from "@/components/kpi-card"
 import { ChartCard } from "@/components/chart-card"
@@ -21,7 +22,7 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useToast } from "@/hooks/use-toast"
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell } from "recharts"
-import { Building2, TrendingUp, TrendingDown, Activity, AlertTriangle, CheckCircle, FileText, ExternalLink, Lightbulb, Target, ArrowUpRight, ArrowDownRight, Shield, Gauge, Info, ClipboardList } from "lucide-react"
+import { Building2, TrendingUp, TrendingDown, Activity, AlertTriangle, CheckCircle, FileText, ExternalLink, Lightbulb, Target, ArrowUpRight, ArrowDownRight, Shield, Gauge, Info, ClipboardList, Phone, Mail, Globe, MapPin, LayoutGrid } from "lucide-react"
 
 // Helper function to get zone color
 const getZoneColor = (zone: string) => {
@@ -126,6 +127,14 @@ export default function RiskAnalysisPage() {
     reset: resetHealthCheck
   } = useReportHealthCheck()
 
+  // Use the company profile hook
+  const {
+    data: companyProfileData,
+    loading: companyProfileLoading,
+    fetchProfile,
+    reset: resetCompanyProfile
+  } = useCompanyProfile()
+
   // Handle manual symbol input and API call
   const handleSymbolAnalyze = async () => {
     if (!symbolInput.trim()) {
@@ -137,11 +146,12 @@ export default function RiskAnalysisPage() {
     setSnapshot(null)
     setResults(null)
 
-    // Fetch financial health data, history, and health check from the API
+    // Fetch financial health data, history, health check, and company profile from the API
     await Promise.all([
       fetchAnalysis(symbolInput.trim()),
       fetchHistory(symbolInput.trim()),
-      fetchHealthCheck(symbolInput.trim())
+      fetchHealthCheck(symbolInput.trim()),
+      fetchProfile(symbolInput.trim())
     ])
   }
 
@@ -158,11 +168,12 @@ export default function RiskAnalysisPage() {
     setSnapshot(null)
     setResults(null)
 
-    // Fetch financial health data, history, and health check from the API
+    // Fetch financial health data, history, health check, and company profile from the API
     await Promise.all([
       fetchAnalysis(company.symbol),
       fetchHistory(company.symbol),
-      fetchHealthCheck(company.symbol)
+      fetchHealthCheck(company.symbol),
+      fetchProfile(company.symbol)
     ])
   }
 
@@ -203,9 +214,40 @@ export default function RiskAnalysisPage() {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold text-foreground">Financial Risk Analysis</h1>
-        <p className="text-muted-foreground">Analyze portfolio risk metrics and volatility trends</p>
+      <div className="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-background via-background to-muted/20 p-6 shadow-sm">
+        {/* Subtle background glow */}
+        <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-bl from-indigo-500/10 via-purple-500/5 to-transparent rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-teal-500/8 to-transparent rounded-full blur-2xl pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col gap-3">
+          <div className="flex items-center gap-4">
+            {/* Icon */}
+            <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/30 shrink-0">
+              <Shield className="h-7 w-7 text-white" />
+            </div>
+
+            {/* Title & subtitle */}
+            <div className="space-y-0.5">
+              <h1 className="text-3xl font-bold tracking-tight text-foreground">Financial Risk Analysis</h1>
+              <p className="text-sm text-muted-foreground">
+                AI-powered CSE stock analysis — assess financial health and predict Z-Score trends
+              </p>
+            </div>
+          </div>
+
+          {/* Status pill */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 w-fit">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+              </span>
+              <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                ML model active · CSE market data
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Input Card */}
@@ -232,9 +274,17 @@ export default function RiskAnalysisPage() {
               <Button
                 onClick={handleSymbolAnalyze}
                 disabled={!symbolInput.trim() || financialHealthLoading}
-                className="px-6 cursor-pointer"
+                className="px-6 cursor-pointer relative overflow-hidden group bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white border-0 shadow-md shadow-blue-500/20 transition-all duration-300"
               >
-                {financialHealthLoading ? "Analyzing..." : "Analyze"}
+                <span className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500 skew-x-12" />
+                {financialHealthLoading ? (
+                  <span className="flex items-center gap-2">
+                    <span className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                    Analyzing...
+                  </span>
+                ) : (
+                  "Analyze"
+                )}
               </Button>
             </div>
             <p className="text-xs text-muted-foreground mt-2">
@@ -272,151 +322,240 @@ export default function RiskAnalysisPage() {
       {/* Financial Health Data Display */}
       {financialHealthData && !financialHealthLoading && (
         <>
-          {/* Company Basic Info */}
-          <Card className="bg-card border-border">
-            <CardHeader>
+          {/* Company Profile Card */}
+          <Card className="relative overflow-hidden bg-gradient-to-br from-blue-500/10 via-indigo-500/8 to-violet-500/10 border-indigo-500/20 backdrop-blur">
+            <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:20px_20px]" />
+            <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-bl from-indigo-400/15 via-violet-400/10 to-transparent rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-blue-400/10 to-transparent rounded-full blur-2xl pointer-events-none" />
+            <CardHeader className="relative z-10">
               <CardTitle className="flex items-center gap-2">
-                <Building2 className="h-5 w-5" />
-                Company Information
+                <div className="p-1.5 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-lg shadow-lg shadow-indigo-500/20">
+                  <Building2 className="h-4 w-4 text-white" />
+                </div>
+                <span className="bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400 bg-clip-text text-transparent">
+                  Company Profile
+                </span>
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div>
-                  <p className="text-xs text-muted-foreground">Company Name</p>
-                  <p className="text-sm font-semibold">{financialHealthData.extractedData.company_name}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Symbol</p>
-                  <p className="text-sm font-semibold">{financialHealthData.symbol}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Report Period</p>
-                  <p className="text-sm font-semibold">{financialHealthData.extractedData.report_period}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Currency</p>
-                  <p className="text-sm font-semibold">{financialHealthData.extractedData.currency}</p>
+            <CardContent className="relative z-10">
+              <div className="flex flex-col md:flex-row gap-6">
+                {/* Logo */}
+                {companyProfileData?.logoUrl && (
+                  <div className="shrink-0 flex items-center justify-center w-24 h-24 rounded-xl bg-white dark:bg-white/5 p-2 shadow-sm shadow-indigo-500/10">
+                    <img
+                      src={companyProfileData.logoUrl}
+                      alt={companyProfileData.summary?.name ?? 'Company logo'}
+                      className="max-w-full max-h-full object-contain"
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+                    />
+                  </div>
+                )}
+
+                {/* Details */}
+                <div className="flex-1 space-y-4">
+                  {/* Header row */}
+                  <div className="flex flex-wrap items-start gap-3">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Company Name</p>
+                      <p className="text-base font-bold">
+                        {companyProfileData?.summary?.name ?? financialHealthData.extractedData.company_name}
+                      </p>
+                    </div>
+                    <div className="ml-auto flex flex-col items-end gap-1">
+                      <Badge variant="outline" className="text-xs">
+                        {companyProfileData?.summary?.symbol ?? financialHealthData.symbol}
+                      </Badge>
+                      {companyProfileData?.summary?.sector && (
+                        <Badge variant="secondary" className="text-xs">
+                          <LayoutGrid className="h-3 w-3 mr-1" />
+                          {companyProfileData.summary.sector}
+                        </Badge>
+                      )}
+                      {companyProfileData?.summary?.boardType && (
+                        <Badge variant="secondary" className="text-xs">
+                          {companyProfileData.summary.boardType}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Contact grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                    {companyProfileData?.summary?.registerOffice && (
+                      <div className="flex items-start gap-2">
+                        <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">Registered Office</p>
+                          <p className="font-medium text-xs">{companyProfileData.summary.registerOffice}</p>
+                        </div>
+                      </div>
+                    )}
+                    {companyProfileData?.summary?.tel1 && (
+                      <div className="flex items-start gap-2">
+                        <Phone className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">Telephone</p>
+                          <p className="font-medium text-xs">{companyProfileData.summary.tel1}</p>
+                        </div>
+                      </div>
+                    )}
+                    {companyProfileData?.summary?.fax && (
+                      <div className="flex items-start gap-2">
+                        <Phone className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">Fax</p>
+                          <p className="font-medium text-xs">{companyProfileData.summary.fax}</p>
+                        </div>
+                      </div>
+                    )}
+                    {companyProfileData?.summary?.email1 && (
+                      <div className="flex items-start gap-2">
+                        <Mail className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">Email</p>
+                          <a
+                            href={`mailto:${companyProfileData.summary.email1}`}
+                            className="font-medium text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                          >
+                            {companyProfileData.summary.email1}
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                    {companyProfileData?.summary?.web && (
+                      <div className="flex items-start gap-2">
+                        <Globe className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">Website</p>
+                          <a
+                            href={companyProfileData.summary.web.startsWith('http') ? companyProfileData.summary.web : `https://${companyProfileData.summary.web}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-medium text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                          >
+                            {companyProfileData.summary.web}
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex items-start gap-2">
+                      <FileText className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Report Period</p>
+                        <p className="font-medium text-xs">{financialHealthData.extractedData.report_period}</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
-              {/* Report Link */}
-              {/* <div className="mt-4 pt-4 border-t">
-                <a
-                  href={financialHealthData.reportInfo.downloadUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
-                >
-                  <FileText className="h-4 w-4" />
-                  View Financial Report ({financialHealthData.reportInfo.reportDate})
-                  <ExternalLink className="h-3 w-3" />
-                </a>
-              </div> */}
             </CardContent>
           </Card>
 
           {/* Next 3 Month Z-Score Prediction - Full Width */}
-          <Card className="relative overflow-hidden bg-gradient-to-br from-emerald-500/10 via-teal-500/10 to-cyan-500/10 border-emerald-500/30 backdrop-blur">
-            <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:20px_20px]" />
-            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-emerald-400/20 to-transparent rounded-full blur-3xl" />
+          {(() => {
+            const predScore = financialHealthData.prediction.z_score_next_quarter
+            const isDistress = predScore < 1.81
+            const isGrey = predScore >= 1.81 && predScore <= 2.99
+            const isSafe = predScore > 2.99
+            const zoneColors = isDistress
+              ? { bg: 'from-red-500/10 via-rose-500/10 to-red-500/5', border: 'border-red-500/30', glow: 'from-red-400/20', glowColor: '#ef4444', icon: 'from-red-500 to-rose-600', iconShadow: 'shadow-red-500/20', title: 'from-red-600 to-rose-600 dark:from-red-400 dark:to-rose-400', divider: 'border-red-500/20', dividerV: 'bg-red-500/20', barGradient: 'from-red-500 to-rose-500', barText: 'text-red-600 dark:text-red-400' }
+              : isGrey
+              ? { bg: 'from-amber-500/10 via-yellow-500/10 to-amber-500/5', border: 'border-amber-500/30', glow: 'from-amber-400/20', glowColor: '#f59e0b', icon: 'from-amber-500 to-yellow-500', iconShadow: 'shadow-amber-500/20', title: 'from-amber-600 to-yellow-600 dark:from-amber-400 dark:to-yellow-400', divider: 'border-amber-500/20', dividerV: 'bg-amber-500/20', barGradient: 'from-amber-500 to-yellow-500', barText: 'text-amber-600 dark:text-amber-400' }
+              : { bg: 'from-emerald-500/10 via-teal-500/10 to-cyan-500/10', border: 'border-emerald-500/30', glow: 'from-emerald-400/20', glowColor: '#22c55e', icon: 'from-emerald-500 to-teal-500', iconShadow: 'shadow-emerald-500/20', title: 'from-emerald-600 to-teal-600 dark:from-emerald-400 dark:to-teal-400', divider: 'border-emerald-500/20', dividerV: 'bg-emerald-500/20', barGradient: 'from-emerald-500 to-teal-500', barText: 'text-emerald-600 dark:text-emerald-400' }
+            return (
+              <Card className={`relative overflow-hidden bg-gradient-to-br ${zoneColors.bg} ${zoneColors.border} backdrop-blur`}>
+                <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:20px_20px]" />
+                <div className={`absolute top-0 right-0 w-64 h-64 bg-gradient-to-br ${zoneColors.glow} to-transparent rounded-full blur-3xl`} />
 
-            <CardHeader className="relative z-10">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg shadow-lg shadow-emerald-500/20">
-                    <TrendingUp className="h-5 w-5 text-white" />
+                <CardHeader className="relative z-10">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className={`p-2 bg-gradient-to-br ${zoneColors.icon} rounded-lg shadow-lg ${zoneColors.iconShadow}`}>
+                        <TrendingUp className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <CardTitle className={`text-lg bg-gradient-to-r ${zoneColors.title} bg-clip-text text-transparent`}>
+                          Next 90 Days Z-Score Prediction
+                        </CardTitle>
+                        <CardDescription className="text-xs mt-0.5">
+                          Powered by {financialHealthData.prediction.model_name} Model
+                        </CardDescription>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <CardTitle className="text-lg bg-gradient-to-r from-emerald-600 to-teal-600 dark:from-emerald-400 dark:to-teal-400 bg-clip-text text-transparent">
-                      Next 90 Days Z-Score Prediction
-                    </CardTitle>
-                    <CardDescription className="text-xs mt-0.5">
-                      Powered by {financialHealthData.prediction.model_name} Model
-                    </CardDescription>
-                  </div>
-                </div>
+                </CardHeader>
 
-                {/* Confidence Badge */}
-                {/* <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 border border-blue-500/30 rounded-full backdrop-blur-sm">
-                  <div className="relative">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
-                    <div className="absolute inset-0 w-2 h-2 bg-blue-400 rounded-full animate-ping" />
-                  </div>
-                  <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">
-                    86% Confidence
-                  </span>
-                </div> */}
-              </div>
-            </CardHeader>
+                <CardContent className="relative z-10">
+                  <div className="py-4">
+                    {/* Z-Score Threshold Gauge */}
+                    <ZScoreGauge
+                      currentScore={financialHealthData.extractedData.ratios.z_score}
+                      predictedScore={financialHealthData.prediction.z_score_next_quarter}
+                      showBothScores={true}
+                    />
 
-            <CardContent className="relative z-10">
-              <div className="py-4">
-                {/* Z-Score Threshold Gauge */}
-                <ZScoreGauge
-                  currentScore={financialHealthData.extractedData.ratios.z_score}
-                  predictedScore={financialHealthData.prediction.z_score_next_quarter}
-                  showBothScores={true}
-                />
-
-                {/* Change Indicator */}
-                <div className="mt-6 flex items-center justify-center gap-3">
-                  <div className={`flex items-center gap-2 px-4 py-2 rounded-full backdrop-blur-sm ${financialHealthData.prediction.z_score_next_quarter > financialHealthData.extractedData.ratios.z_score
-                    ? 'bg-green-500/20 border border-green-500/30'
-                    : 'bg-red-500/20 border border-red-500/30'
-                    }`}>
-                    {financialHealthData.prediction.z_score_next_quarter > financialHealthData.extractedData.ratios.z_score ? (
-                      <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
-                    ) : (
-                      <TrendingDown className="h-5 w-5 text-red-600 dark:text-red-400" />
-                    )}
-                    <span className={`text-base font-bold ${financialHealthData.prediction.z_score_next_quarter > financialHealthData.extractedData.ratios.z_score
-                      ? 'text-green-600 dark:text-green-400'
-                      : 'text-red-600 dark:text-red-400'
-                      }`}>
-                      {((financialHealthData.prediction.z_score_next_quarter - financialHealthData.extractedData.ratios.z_score) / financialHealthData.extractedData.ratios.z_score * 100).toFixed(2)}%
-                    </span>
-                    <span className="text-sm font-medium text-muted-foreground">
-                      change expected
-                    </span>
-                  </div>
-                </div>
-
-                {/* Model Accuracy Indicator */}
-                <div className="mt-6 pt-4 border-t border-emerald-500/20">
-                  <div className="flex items-center justify-center gap-4">
-                    <div className="text-left">
-                      <p className="text-xs text-muted-foreground mb-1">Model Confidence</p>
-                      <div className="flex items-center gap-2">
-                        <div className="w-24 h-2 bg-muted/30 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-1000 ease-out"
-                            style={{ width: '86%' }}
-                          />
-                        </div>
-                        <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">86%</span>
+                    {/* Change Indicator */}
+                    <div className="mt-6 flex items-center justify-center gap-3">
+                      <div className={`flex items-center gap-2 px-4 py-2 rounded-full backdrop-blur-sm ${financialHealthData.prediction.z_score_next_quarter > financialHealthData.extractedData.ratios.z_score
+                        ? 'bg-green-500/20 border border-green-500/30'
+                        : 'bg-red-500/20 border border-red-500/30'
+                        }`}>
+                        {financialHealthData.prediction.z_score_next_quarter > financialHealthData.extractedData.ratios.z_score ? (
+                          <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
+                        ) : (
+                          <TrendingDown className="h-5 w-5 text-red-600 dark:text-red-400" />
+                        )}
+                        <span className={`text-base font-bold ${financialHealthData.prediction.z_score_next_quarter > financialHealthData.extractedData.ratios.z_score
+                          ? 'text-green-600 dark:text-green-400'
+                          : 'text-red-600 dark:text-red-400'
+                          }`}>
+                          {((financialHealthData.prediction.z_score_next_quarter - financialHealthData.extractedData.ratios.z_score) / financialHealthData.extractedData.ratios.z_score * 100).toFixed(2)}%
+                        </span>
+                        <span className="text-sm font-medium text-muted-foreground">
+                          change expected
+                        </span>
                       </div>
                     </div>
 
-                    <div className="h-8 w-px bg-emerald-500/20" />
+                    {/* Model Accuracy Indicator */}
+                    <div className={`mt-6 pt-4 border-t ${zoneColors.divider}`}>
+                      <div className="flex items-center justify-center gap-4">
+                        <div className="text-left">
+                          <p className="text-xs text-muted-foreground mb-1">Model Confidence</p>
+                          <div className="flex items-center gap-2">
+                            <div className="w-24 h-2 bg-muted/30 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full bg-gradient-to-r ${zoneColors.barGradient} rounded-full transition-all duration-1000 ease-out`}
+                                style={{ width: '86%' }}
+                              />
+                            </div>
+                            <span className={`text-sm font-bold ${zoneColors.barText}`}>86%</span>
+                          </div>
+                        </div>
 
-                    <div className="text-left">
-                      <p className="text-xs text-muted-foreground mb-1">Prediction Date</p>
-                      <p className="text-sm font-medium">
-                        {new Date(financialHealthData.prediction.timestamp).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric'
-                        })}
-                      </p>
+                        <div className={`h-8 w-px ${zoneColors.dividerV}`} />
+
+                        <div className="text-left">
+                          <p className="text-xs text-muted-foreground mb-1">Prediction Date</p>
+                          <p className="text-sm font-medium">
+                            {new Date(financialHealthData.prediction.timestamp).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric'
+                            })}
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            )
+          })()}
 
           {/* AI Explanation Summary */}
-          <Card className="bg-card border-border">
+          {/* <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Lightbulb className="h-5 w-5 text-yellow-500" />
@@ -426,16 +565,17 @@ export default function RiskAnalysisPage() {
             <CardContent>
               <p className="text-sm leading-relaxed">{financialHealthData.explanation.summary}</p>
             </CardContent>
-          </Card>
+          </Card> */}
 
           {/* Key Drivers */}
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">🔍 Primary factors influencing the Z-Score</h1>
+          
           <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Target className="h-5 w-5" />
                 Key Drivers
               </CardTitle>
-              <CardDescription>Primary factors influencing the Z-Score</CardDescription>
             </CardHeader>
             <CardContent>
               <ul className="space-y-3">
@@ -546,7 +686,7 @@ export default function RiskAnalysisPage() {
             </Card>
           </div>
 
-          {/* Financial Ratios Grid */}
+          {/* Financial Ratios Grid
           <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle>Financial Ratios</CardTitle>
@@ -616,7 +756,7 @@ export default function RiskAnalysisPage() {
                 </div>
               )}
             </CardContent>
-          </Card>
+          </Card> */}
 
           {/* Historical Metrics Chart */}
           <MetricsChart
@@ -681,13 +821,110 @@ export default function RiskAnalysisPage() {
         </Card>
       )}
 
+
+  {financialHealthData && !financialHealthLoading && (
+    <>
+
+              <div className="space-y-2">
+                <h1 className="text-3xl font-bold tracking-tight text-foreground">📊 Key financial metrics extracted from the Latest report</h1>
+                {financialHealthData.reportInfo?.downloadUrl && (
+                  <a
+                    href={financialHealthData.reportInfo.downloadUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    <FileText className="h-4 w-4" />
+                    View Source Report ({financialHealthData.reportInfo.reportDate})
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                )}
+              </div>
+
+  {/* Financial Ratios Grid */}
+          <Card className="bg-card border-border">
+            <CardHeader>
+              <CardTitle>Financial Ratios</CardTitle>
+              {/* <CardDescription>Key financial metrics extracted from the Latest report</CardDescription> */}
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                <div className="p-4 bg-muted/30 rounded-lg">
+                  <p className="text-xs text-muted-foreground mb-1">Working Capital / Total Assets</p>
+                  <p className="text-lg font-semibold">{formatPercentage(financialHealthData.extractedData.ratios.working_capital_to_total_assets)}</p>
+                </div>
+                <div className="p-4 bg-muted/30 rounded-lg">
+                  <p className="text-xs text-muted-foreground mb-1">Retained Earnings / Total Assets</p>
+                  <p className="text-lg font-semibold">{formatPercentage(financialHealthData.extractedData.ratios.retained_earnings_to_total_assets)}</p>
+                </div>
+                <div className="p-4 bg-muted/30 rounded-lg">
+                  <p className="text-xs text-muted-foreground mb-1">EBIT / Total Assets</p>
+                  <p className="text-lg font-semibold">{formatPercentage(financialHealthData.extractedData.ratios.ebit_to_total_assets)}</p>
+                </div>
+                <div className="p-4 bg-muted/30 rounded-lg">
+                  <p className="text-xs text-muted-foreground mb-1">MVE / Total Liabilities</p>
+                  <p className="text-lg font-semibold">{formatDecimal(financialHealthData.extractedData.ratios.mve_to_total_liabilities)}</p>
+                </div>
+                <div className="p-4 bg-muted/30 rounded-lg">
+                  <p className="text-xs text-muted-foreground mb-1">Sales / Total Assets</p>
+                  <p className="text-lg font-semibold">{formatPercentage(financialHealthData.extractedData.ratios.sales_to_total_assets)}</p>
+                </div>
+                <div className="p-4 bg-muted/30 rounded-lg">
+                  <p className="text-xs text-muted-foreground mb-1">Current Ratio</p>
+                  <p className="text-lg font-semibold">{formatDecimal(financialHealthData.extractedData.ratios.current_ratio)}</p>
+                </div>
+                <div className="p-4 bg-muted/30 rounded-lg">
+                  <p className="text-xs text-muted-foreground mb-1">Debt to Equity Ratio</p>
+                  <p className="text-lg font-semibold">{formatDecimal(financialHealthData.extractedData.ratios.debt_to_equity_ratio)}</p>
+                </div>
+                <div className="p-4 bg-muted/30 rounded-lg">
+                  <p className="text-xs text-muted-foreground mb-1">Net Profit Margin</p>
+                  <p className="text-lg font-semibold">{formatPercentage(financialHealthData.extractedData.ratios.net_profit_margin)}</p>
+                </div>
+
+                <div className="p-4 bg-muted/30 rounded-lg">
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground mb-1">Z Score</p>
+                    <p className="text-xs font-bold">{financialHealthData.extractedData.ratios.z_score.toFixed(4)}</p>
+                    <div className="mt-2 flex justify-center">
+                      <Badge className={`${getZoneColor(financialHealthData.riskAssessment.zone)} px-4 py-1 text-xs font-medium`}>
+                        {getZoneIcon(financialHealthData.riskAssessment.zone)}
+                        <span className="ml-2">{financialHealthData.riskAssessment.zone} Zone</span>
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+              {/* {financialHealthData.reportInfo?.downloadUrl && (
+                <div className="mt-4 pt-4 border-t">
+                  <a
+                    href={financialHealthData.reportInfo.downloadUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    <FileText className="h-4 w-4" />
+                    View Financial Report ({financialHealthData.reportInfo.reportDate})
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+              )} */}
+            </CardContent>
+          </Card>
+
+          </>
+        )}
+
+      
+
       {healthCheckData && !healthCheckLoading && (
         <>
           <Card className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border-indigo-500/20">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="h-5 w-5 text-indigo-500" />
-                Financial Health Check Report
+                Latest Report Health Check
               </CardTitle>
               <CardDescription>
                 {healthCheckData.companyName} • {healthCheckData.detectedIndustry}
@@ -730,7 +967,7 @@ export default function RiskAnalysisPage() {
                   <p className="text-sm text-muted-foreground leading-relaxed mt-2">
                     {healthCheckData.analysisNotes}
                   </p>
-                  {healthCheckData.reportInfo?.downloadUrl && (
+                  {/* {healthCheckData.reportInfo?.downloadUrl && (
                     <div className="mt-4">
                       <a
                         href={healthCheckData.reportInfo.downloadUrl}
@@ -743,7 +980,7 @@ export default function RiskAnalysisPage() {
                         <ExternalLink className="h-3 w-3" />
                       </a>
                     </div>
-                  )}
+                  )} */}
                 </div>
               </div>
             </CardContent>
