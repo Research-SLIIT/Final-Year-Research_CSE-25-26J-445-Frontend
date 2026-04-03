@@ -45,12 +45,25 @@ export default function SignUp() {
     setLoading(true)
 
     try {
-      await signUp(name, email, password)
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3400"}/api/v1/auth/sign-up`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name, email, password }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || data.error || "Sign up failed")
+      }
+
       toast({
         title: "Success",
-        description: "Account created successfully",
+        description: data.message || "Account created successfully",
       })
-      router.push("/")
+      router.push("/auth/sign-in")
     } catch (err) {
       const message = err instanceof Error ? err.message : "Sign up failed"
       setError(message)

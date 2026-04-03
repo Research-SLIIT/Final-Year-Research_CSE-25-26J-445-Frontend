@@ -52,6 +52,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (!isAuthenticated && isProtectedPage) {
       router.push("/auth/sign-in")
     } else if (isAuthenticated && isAuthPage) {
+      const userStr = localStorage.getItem("cse_user")
+      if (userStr) {
+        try {
+          const userObj = JSON.parse(userStr)
+          if (userObj.role === "admin") {
+            router.push("/admin/users")
+            return
+          }
+        } catch (e) {}
+      }
       router.push("/")
     }
   }, [isAuthenticated, pathname, router, mounted, loading])
@@ -61,8 +71,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     router.push("/auth/sign-in")
   }
 
-  // Show auth pages without sidebar (Sign In / Sign Up)
-  if (!mounted || loading || pathname.startsWith("/auth")) {
+  // Show auth and admin pages without the main app sidebar
+  if (!mounted || loading || pathname.startsWith("/auth") || pathname.startsWith("/admin")) {
     return <>{children}</>
   }
 

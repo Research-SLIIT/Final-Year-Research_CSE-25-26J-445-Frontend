@@ -25,6 +25,16 @@ export default function SignIn() {
   useEffect(() => {
     // Only redirect if authenticated and not in OTP flow
     if (isAuthenticated && !authLoading && !showOtp) {
+      const userStr = localStorage.getItem("cse_user")
+      if (userStr) {
+        try {
+          const userObj = JSON.parse(userStr)
+          if (userObj.role === "admin") {
+            router.push("/admin/users")
+            return
+          }
+        } catch (e) {}
+      }
       router.push("/")
     }
   }, [isAuthenticated, authLoading, router, showOtp])
@@ -97,12 +107,15 @@ export default function SignIn() {
         localStorage.setItem("cse_auth_token", data.accessToken)
         
         // Decode the JWT to get basic user info
+        let userRole = "user";
         try {
           const payload = JSON.parse(atob(data.accessToken.split('.')[1]))
+          userRole = payload.role || "user";
           const userObj = {
             id: payload.sub || "unknown_id",
             name: payload.email?.split('@')[0] || "User",
             email: payload.email || "",
+            role: userRole,
             displayName: payload.email?.split('@')[0] || "User",
             bio: "",
             joinedDate: new Date().toISOString()
@@ -114,13 +127,18 @@ export default function SignIn() {
 
         // Force store to reload session to become authenticated
         loadSession()
-      }
 
-      toast({
-        title: "Success",
-        description: "OTP verified successfully",
-      })
-      router.push("/")
+        toast({
+          title: "Success",
+          description: "OTP verified successfully",
+        })
+
+        if (userRole === "admin") {
+          router.push("/admin/users")
+        } else {
+          router.push("/")
+        }
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : "OTP verification failed"
       setError(message)
