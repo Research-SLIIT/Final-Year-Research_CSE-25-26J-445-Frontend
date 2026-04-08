@@ -7,6 +7,7 @@ export interface User {
   displayName: string
   bio: string
   joinedDate: string
+  isPremium?: boolean
 }
 
 interface AuthStore {
