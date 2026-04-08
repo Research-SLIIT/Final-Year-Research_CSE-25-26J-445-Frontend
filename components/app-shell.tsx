@@ -5,18 +5,18 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
-import { BarChart3, TrendingUp, PieChart, Settings, Menu, X, LogOut, LogIn, User, Newspaper, Banknote, PanelLeft } from "lucide-react"
+import { BarChart3, TrendingUp, PieChart, Settings, Menu, X, LogOut, LogIn, User, Newspaper, Banknote, PanelLeft, Lock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuthStore } from "@/stores/useAuthStore"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 const protectedNavigation = [
-  { name: "Dashboard", href: "/", icon: BarChart3 },
-  { name: "Risk Analysis", href: "/risk", icon: PieChart },
-  { name: "Price Prediction", href: "/predict", icon: TrendingUp },
-  { name: "Dividend", href: "/dividend", icon: Banknote },
-  { name: "News", href: "/news", icon: Newspaper },
-  { name: "Settings", href: "/settings", icon: Settings },
+  { name: "Dashboard", href: "/", icon: BarChart3, premium: false },
+  { name: "Risk Analysis", href: "/risk", icon: PieChart, premium: true },
+  { name: "Price Prediction", href: "/predict", icon: TrendingUp, premium: true },
+  { name: "Dividend", href: "/dividend", icon: Banknote, premium: true },
+  { name: "News", href: "/news", icon: Newspaper, premium: true },
+  { name: "Settings", href: "/settings", icon: Settings, premium: false },
 ]
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -63,6 +63,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         } catch (e) {}
       }
       router.push("/")
+    } else if (isProtectedPage && !pathname.startsWith("/pricing") && !pathname.startsWith("/settings")) {
+      // Check for premium routes
+      const currentNav = protectedNavigation.find((n) => pathname.startsWith(n.href) && n.href !== "/")
+      if (currentNav?.premium && (!isAuthenticated || !user?.isPremium)) {
+        router.push("/pricing")
+      }
     }
   }, [isAuthenticated, pathname, router, mounted, loading])
 
@@ -90,24 +96,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       >
         <div className="w-64">
           <div className="h-16 border-b border-border flex items-center px-6 gap-3">
-            <Image src="/logoB.png" alt="Invest Wise Logo" width={32} height={32} className="rounded-md" />
-            <h1 className="text-lg font-bold text-foreground">Invest Wise</h1>
+            {/* <Image src="/logoB.png" alt="Invest Wise Logo" width={32} height={32} className="rounded-md" /> */}
+            <h1 className="text-lg font-bold text-foreground">InvestWise</h1>
           </div>
           <nav className="px-4 py-4">
-            {protectedNavigation
-              .filter(item => isAuthenticated || item.href === "/")
-              .map((item) => {
+            {protectedNavigation.map((item) => {
               const Icon = item.icon
               const isActive = pathname === item.href
+              const isLocked = item.premium && (!isAuthenticated || !user?.isPremium)
               return (
-                <Link key={item.href} href={item.href}>
+                <Link key={item.href} href={isLocked ? "/pricing" : item.href}>
                   <Button
                     variant={isActive ? "default" : "ghost"}
-                    className="w-full justify-start gap-2 mb-2"
+                    className="w-full justify-start gap-2 mb-2 relative"
                     onClick={() => setSidebarOpen(false)}
                   >
                     <Icon className="h-4 w-4" />
-                    {item.name}
+                    <span>{item.name}</span>
+                    {isLocked && <Lock className="h-3 w-3 absolute right-4 text-muted-foreground" />}
                   </Button>
                 </Link>
               )
