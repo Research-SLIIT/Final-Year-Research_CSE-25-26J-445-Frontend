@@ -123,19 +123,18 @@ export const useAuthStore = create<AuthStore>((set) => ({
       const token = localStorage.getItem(STORAGE_KEY)
       if (!token) return
 
-      const user = await apiClient<User>("/users/profile")
+      const user = await apiClient<User>("/user/profile")
       localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user))
       set({ user, isAuthenticated: true })
     } catch (error) {
       console.error("Failed to refresh user profile:", error)
-      // If unauthorized, we might want to log out, but let's be gentle for now
     }
   },
 
   updateProfile: async (displayName: string, bio: string) => {
     set({ loading: true, error: null })
     try {
-      const updatedUser = await apiClient<User>("/users/profile", {
+      const updatedUser = await apiClient<User>("/user/profile", {
         method: "PUT",
         body: JSON.stringify({ displayName, bio }),
       })
