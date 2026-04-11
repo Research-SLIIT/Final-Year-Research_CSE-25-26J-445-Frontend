@@ -22,19 +22,20 @@ const protectedNavigation = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
-  const { user, isAuthenticated, loading, loadSession, signOut } = useAuthStore()
+  const { user, isAuthenticated, loading, loadSession, refreshUser, signOut } = useAuthStore()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [desktopCollapsed, setDesktopCollapsed] = useState(false)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     loadSession()
+    refreshUser() // Check Latest status from backend on mount (e.g. after payment redirect)
     const stored = localStorage.getItem("sidebar-collapsed")
     if (stored !== null) {
       setDesktopCollapsed(stored === "true")
     }
     setMounted(true)
-  }, [loadSession])
+  }, [loadSession, refreshUser])
 
   const toggleDesktopSidebar = () => {
     const next = !desktopCollapsed
