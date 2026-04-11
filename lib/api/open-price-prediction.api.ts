@@ -18,7 +18,7 @@ const API_BASE_URL =
  * Check health of the open price prediction service
  */
 export async function checkOpenPriceServiceHealth(): Promise<OpenPriceHealthCheckResponse> {
-  const url = `${API_BASE_URL}/api/v1/open-price/health`;
+  const url = `${API_BASE_URL}/open-price/health`;
 
   try {
     const response = await fetch(url, {
@@ -155,7 +155,7 @@ export async function fetchOpenPriceHistory(
   nDays: number = 22,
 ): Promise<OpenPriceHistoryPoint[]> {
   const normalizedId = normalizeSymbol(companyId);
-  const url = `${API_BASE_URL}/api/v1/open-price/history?company_id=${encodeURIComponent(normalizedId)}&n_days=${nDays}`;
+  const url = `${API_BASE_URL}/open-price/history?company_id=${encodeURIComponent(normalizedId)}&n_days=${nDays}`;
   try {
     const response = await fetch(url, { method: "GET" });
     if (!response.ok) return [];
@@ -188,7 +188,7 @@ export async function fetchOpenPriceHistory(
 export async function fetchCompanies(): Promise<
   Array<{ id: string; name: string }>
 > {
-  const url = `${API_BASE_URL}/api/v1/open-price/companies`;
+  const url = `${API_BASE_URL}/open-price/companies`;
   try {
     const response = await fetch(url, { method: "GET" });
     if (!response.ok) return [];
@@ -219,7 +219,7 @@ export async function predictOpenPrice(
     params.append("asof", asofDate);
   }
 
-  const url = `${API_BASE_URL}/api/v1/open-price/predict?${params.toString()}`;
+  const url = `${API_BASE_URL}/open-price/predict?${params.toString()}`;
 
   try {
     const response = await fetch(url, {
