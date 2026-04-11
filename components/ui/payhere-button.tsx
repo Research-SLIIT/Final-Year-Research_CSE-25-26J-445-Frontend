@@ -53,12 +53,20 @@ export function PayhereButton({
       }
 
       setLoading(true)
-      // Step 1: Request checkout details 
+      // Step 1: Request checkout details
+      const nameParts = (user.name || user.displayName || '').trim().split(' ');
+      const firstName = nameParts[0] || 'Customer';
+      const lastName = nameParts.slice(1).join(' ') || '';
+
       const payload = {
-        amount: amount, 
+        amount: amount,
         currency: "LKR",
         userId: user.id,
-        items: itemName
+        items: itemName,
+        firstName,
+        lastName,
+        email: user.email || '',
+        phone: '0000000000',
       };
 
       const response = await apiClient<{ success: boolean; checkoutData: PayHereCheckoutData }>("/payments/checkout", {
