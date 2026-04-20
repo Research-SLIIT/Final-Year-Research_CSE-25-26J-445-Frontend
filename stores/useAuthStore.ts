@@ -1,4 +1,5 @@
 import { create } from "zustand"
+import { apiClient } from "@/lib/api-client"
 
 export interface User {
   id: string
@@ -7,6 +8,7 @@ export interface User {
   displayName: string
   bio: string
   joinedDate: string
+  isPremium?: boolean
 }
 
 interface AuthStore {
@@ -19,6 +21,7 @@ interface AuthStore {
   signUp: (name: string, email: string, password: string) => Promise<void>
   signOut: () => void
   loadSession: () => void
+  refreshUser: () => Promise<void>
   updateProfile: (displayName: string, bio: string) => Promise<void>
   clearError: () => void
 }
@@ -36,8 +39,11 @@ export const useAuthStore = create<AuthStore>((set) => ({
   signIn: async (email: string, password: string) => {
     set({ loading: true, error: null })
     try {
-      const { authSignIn } = await import("@/lib/fakeApi")
-      const response = await authSignIn(email, password)
+      const response = await apiClient<{ user: User; token: string }>("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      })
+      
       localStorage.setItem(STORAGE_KEY, response.token)
       localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(response.user))
       set({
@@ -58,8 +64,11 @@ export const useAuthStore = create<AuthStore>((set) => ({
   signUp: async (name: string, email: string, password: string) => {
     set({ loading: true, error: null })
     try {
-      const { authSignUp } = await import("@/lib/fakeApi")
-      const response = await authSignUp(name, email, password)
+      const response = await apiClient<{ user: User; token: string }>("/auth/register", {
+        method: "POST",
+        body: JSON.stringify({ name, email, password }),
+      })
+      
       localStorage.setItem(STORAGE_KEY, response.token)
       localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(response.user))
       set({
@@ -109,13 +118,26 @@ export const useAuthStore = create<AuthStore>((set) => ({
     }
   },
 
+  refreshUser: async () => {
+    try {
+      const token = localStorage.getItem(STORAGE_KEY)
+      if (!token) return
+
+      const user = await apiClient<User>("/user/profile")
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user))
+      set({ user, isAuthenticated: true })
+    } catch (error) {
+      console.error("Failed to refresh user profile:", error)
+    }
+  },
+
   updateProfile: async (displayName: string, bio: string) => {
     set({ loading: true, error: null })
     try {
-      const { authUpdateProfile } = await import("@/lib/fakeApi")
-      const token = localStorage.getItem(STORAGE_KEY)
-      if (!token) throw new Error("Not authenticated")
-      const updatedUser = await authUpdateProfile(token, displayName, bio)
+      const updatedUser = await apiClient<User>("/user/profile", {
+        method: "PUT",
+        body: JSON.stringify({ displayName, bio }),
+      })
       localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser))
       set({
         user: updatedUser,
