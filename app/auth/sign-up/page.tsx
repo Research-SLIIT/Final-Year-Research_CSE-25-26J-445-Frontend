@@ -45,7 +45,7 @@ export default function SignUp() {
     setLoading(true)
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3400"}/api/v1/auth/sign-up`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://13.60.26.93:8080"}/api/v1/auth/sign-up`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -54,7 +54,7 @@ export interface DividendPredictionResult {
 
 
 // API base URL - can be configured via environment variable
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3400/api/v1/dividend-prediction/';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://13.60.26.93:8080/api/v1/dividend-prediction/';
 
 export const predictDividend = async (
   symbol: string

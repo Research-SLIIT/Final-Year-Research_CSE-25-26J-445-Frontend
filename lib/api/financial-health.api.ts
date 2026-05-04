@@ -6,7 +6,7 @@
 import { CompanyHealthHistoryResponse } from '@/lib/types/company-health-history.types';
 
 // API base URL - can be configured via environment variable
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3400';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://13.60.26.93:8080';
 
 /**
  * Returns the SSE stream URL for the analyze-cse endpoint

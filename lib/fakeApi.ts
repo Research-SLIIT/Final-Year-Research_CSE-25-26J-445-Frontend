@@ -309,7 +309,7 @@ export const authUpdateProfile = async (
 
 // News API functions — fetch real articles from backend, fall back to mock
 const BACKEND_URL =
-  process.env.NEXT_PUBLIC_API_GATEWAY_URL || "http://127.0.0.1:3400/api/v1/sentiment";
+  process.env.NEXT_PUBLIC_API_GATEWAY_URL || "http://127.0.0.1:8080/api/v1/sentiment";
 
 export const newsList = async (
   query?: string,
@@ -456,7 +456,7 @@ export const predictDividend = async (
 // API function to fetch data from backend
 export const fetchDataFromBackend = async (symbol: string, year: number = 2024): Promise<DividendPredictionResult> => {
   try {
-    const response = await fetch('http://localhost:8001/data', {
+    const response = await fetch('http://13.60.26.93:8001/data', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
