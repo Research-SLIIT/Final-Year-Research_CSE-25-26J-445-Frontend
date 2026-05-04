@@ -46,7 +46,7 @@ export default function SignIn() {
 
     try {
       // Step 1: initial sign in using the real backend API
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "https://sandfish-parched-casket.ngrok-free.dev"}/api/v1/auth/sign-in`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://13.60.26.93:8080"}/api/v1/auth/sign-in`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -85,7 +85,7 @@ export default function SignIn() {
     setLoading(true)
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "https://sandfish-parched-casket.ngrok-free.dev"}/api/v1/auth/verify-otp`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://13.60.26.93:8080"}/api/v1/auth/verify-otp`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

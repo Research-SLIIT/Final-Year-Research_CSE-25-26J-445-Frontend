@@ -77,7 +77,7 @@ function buildExplanationFromRaw(raw: any): ExplanationData | undefined {
 // ================= API CALL =================
 
 export async function analyzeNews(text: string): Promise<AnalyzeResponse> {
-  const res = await fetch("http://127.0.0.1:8080/api/v1/sentiment/analyze", {
+  const res = await fetch("http://13.60.26.93:8080/api/v1/sentiment/analyze", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text }),
