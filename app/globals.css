@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
+@import '../styles/analysis-breakdown.css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -122,4 +123,34 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  display: inline-flex;
+  animation: marquee linear infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }

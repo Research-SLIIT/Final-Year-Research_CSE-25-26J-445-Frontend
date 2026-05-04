@@ -1,77 +1,175 @@
 {
   "news": [
     {
-      "id": "news_1",
-      "title": "CSE Index Reaches All-Time High",
-      "source": "CSE Official",
-      "publishedDate": "2025-12-26",
-      "summary": "The Colombo Stock Exchange Index surged to record levels today, driven by strong banking and energy sector performance.",
-      "tags": ["CSE", "Economy"],
-      "content": "The Colombo Stock Exchange Index has reached unprecedented heights today, driven by robust performance across multiple sectors. Banking institutions led the charge with strong earnings reports, while the energy sector benefited from improved global market conditions. Analysts attribute this growth to increased foreign investor interest and positive macroeconomic indicators."
-    },
-    {
-      "id": "news_2",
-      "title": "Tech Sector Booms as Digital Transformation Accelerates",
-      "source": "Investment Weekly",
-      "publishedDate": "2025-12-25",
-      "summary": "Technology companies listed on CSE show strong growth as businesses accelerate digital transformation initiatives.",
-      "tags": ["Company", "Technology"],
-      "content": "Technology companies listed on the Colombo Stock Exchange are experiencing strong growth as enterprises adopt cloud computing, cybersecurity, and automation solutions. Several listed firms announced expansion plans and increased hiring."
-    },
-    {
-      "id": "news_3",
-      "title": "Global Markets Rally on Positive Economic Data",
-      "source": "Global Market News",
-      "publishedDate": "2025-12-24",
-      "summary": "International stock markets surge following release of positive economic indicators from major economies.",
-      "tags": ["Global Markets", "Economy"],
-      "content": "Global markets rallied following strong employment and inflation data from major economies. Emerging markets, including Sri Lanka, benefited from increased investor risk appetite."
-    },
-    {
-      "id": "news_4",
-      "title": "Banking Sector Reports Strong Q3 Results",
-      "source": "Financial Times",
-      "publishedDate": "2025-12-23",
-      "summary": "Major banks announce excellent quarterly results with increased profitability.",
-      "tags": ["Company", "CSE"],
-      "content": "Major listed banks reported improved profitability for Q3, supported by higher net interest income and stable asset quality."
-    },
-
-    {
-      "id": "news_impact_001",
-      "title": "Moody’s Places Sampath Bank Ratings on Review for Possible Downgrade",
-      "source": "CSE Official",
-      "publishedDate": "2025-01-15",
-      "summary": "Moody’s Investors Service placed Sampath Bank PLC ratings under review for downgrade.",
-      "tags": ["Company", "CSE", "Banking"],
-      "content": "Moody’s Investors Service announced that it has placed Sampath Bank PLC’s long-term issuer ratings under review for possible downgrade. The decision reflects macroeconomic pressures, sovereign risk exposure, and concerns over asset quality. Market participants reacted cautiously following the announcement."
-    },
-    {
-      "id": "news_impact_002",
-      "title": "Commercial Bank Reports Sharp Decline in Quarterly Profits",
-      "source": "Daily FT",
-      "publishedDate": "2025-01-10",
-      "summary": "Commercial Bank of Ceylon PLC reported a sharp drop in quarterly earnings.",
-      "tags": ["Company", "CSE", "Earnings"],
-      "content": "Commercial Bank of Ceylon PLC reported a sharp decline in quarterly profits due to higher loan loss provisions and margin compression. Analysts noted that results fell below expectations, triggering negative sentiment among investors."
-    },
-    {
-      "id": "news_impact_003",
-      "title": "Central Bank Tightens Capital Requirements for Listed Banks",
+      "id": "news_002",
+      "title": "Commercial Bank Sees Improvement in Asset Quality With Lower NPL Ratios",
       "source": "Business Times",
-      "publishedDate": "2025-01-05",
-      "summary": "New capital rules could pressure banking sector balance sheets.",
-      "tags": ["CSE", "Banking", "Regulation"],
-      "content": "The Central Bank of Sri Lanka introduced tighter capital adequacy requirements for licensed commercial banks. Analysts warned that higher capital buffers may restrict dividend payouts and weigh on short-term profitability."
+      "publishedDate": "2025-01-17",
+      "summary": "Commercial Bank reports improved asset quality and capital strength.",
+      "tags": ["Company", "CSE", "Banking"],
+      "content": "Commercial Bank of Ceylon PLC highlighted improved loan recoveries and a reduction in non-performing loans. The bank stated that stronger capital buffers and prudent risk management supported balance sheet stability."
     },
     {
-      "id": "news_impact_004",
-      "title": "Sampath Bank Posts Strong Earnings Growth Driven by Digital Expansion",
+      "id": "news_003",
+      "title": "Sampath Bank Expands Digital Banking Services to Drive Retail Growth",
       "source": "Investment Weekly",
-      "publishedDate": "2024-12-20",
-      "summary": "Sampath Bank reports better-than-expected earnings growth.",
-      "tags": ["Company", "CSE", "Earnings"],
-      "content": "Sampath Bank PLC reported stronger-than-expected quarterly earnings supported by digital banking growth and cost optimization. Investor sentiment improved following the announcement."
+      "publishedDate": "2025-01-16",
+      "summary": "Sampath Bank enhances digital platforms to support customer growth.",
+      "tags": ["Company", "CSE", "Banking"],
+      "content": "Sampath Bank PLC announced enhancements to its digital banking platforms aimed at increasing customer engagement and transaction volumes. Management stated that digital adoption continues to support operating efficiency."
+    },
+    {
+      "id": "news_004",
+      "title": "Dialog Axiata Records Steady Data Revenue Growth",
+      "source": "Daily FT",
+      "publishedDate": "2025-01-15",
+      "summary": "Dialog benefits from higher mobile broadband usage.",
+      "tags": ["Company", "CSE", "Telecommunication"],
+      "content": "Dialog Axiata PLC reported steady growth in data revenues driven by higher smartphone penetration and increased mobile broadband consumption. The company noted sustained demand for digital connectivity services."
+    },
+    {
+      "id": "news_005",
+      "title": "Sri Lanka Telecom Benefits From Rising Enterprise Connectivity Demand",
+      "source": "Business Times",
+      "publishedDate": "2025-01-14",
+      "summary": "SLT sees increased demand for fiber and enterprise solutions.",
+      "tags": ["Company", "CSE", "Telecommunication"],
+      "content": "Sri Lanka Telecom PLC stated that demand for enterprise connectivity and fiber services increased, particularly from corporate and government clients. The company expects enterprise solutions to remain a key revenue driver."
+    },
+    {
+      "id": "news_006",
+      "title": "Cargills Maintains Stable Margins Despite Input Cost Pressures",
+      "source": "Daily FT",
+      "publishedDate": "2025-01-13",
+      "summary": "Cargills offsets higher costs through supply-chain efficiencies.",
+      "tags": ["Company", "CSE", "Retail"],
+      "content": "Cargills (Ceylon) PLC reported stable margins despite higher logistics and raw material costs. The company cited improved supply-chain efficiencies and pricing discipline as key mitigating factors."
+    },
+    {
+      "id": "news_007",
+      "title": "Watawala Plantations Earnings Decline Due to Weak Tea Output",
+      "source": "Daily FT",
+      "publishedDate": "2025-01-12",
+      "summary": "Lower production offsets stable auction prices.",
+      "tags": ["Company", "CSE", "Conglomerate"],
+      "content": "Watawala Plantations PLC reported a decline in quarterly earnings as adverse weather conditions impacted tea production volumes. Despite relatively stable auction prices, reduced output and higher input costs negatively affected overall profitability."
+    },
+    {
+      "id": "news_008",
+      "title": "Dialog Axiata Reports Slower Revenue Growth Amid Competitive Pressure",
+      "source": "Daily FT",
+      "publishedDate": "2025-01-11",
+      "summary": "Intense competition weighs on topline expansion.",
+      "tags": ["Company", "CSE", "Telecommunications"],
+      "content": "Dialog Axiata PLC posted slower revenue growth for the quarter as intense competition in mobile and broadband services led to pricing pressure. The company noted that promotional spending increased while average revenue per user remained subdued."
+    },
+    {
+      "id": "news_009",
+      "title": "Aitken Spence Hotels Benefit From Rising Tourist Arrivals",
+      "source": "Business Times",
+      "publishedDate": "2025-01-10",
+      "summary": "Peak season bookings support hotel sector earnings.",
+      "tags": ["Company", "CSE", "Tourism"],
+      "content": "Aitken Spence Hotel Holdings PLC reported stronger bookings during the peak tourist season, particularly from European and Asian markets. The company expects seasonal demand to support earnings."
+    },
+    {
+      "id": "news_010",
+      "title": "Distilleries Company Reports Stable Volumes Despite Higher Excise Costs",
+      "source": "Daily FT",
+      "publishedDate": "2025-01-09",
+      "summary": "Stable demand offsets regulatory cost pressures.",
+      "tags": ["Company", "CSE", "Beverages"],
+      "content": "Distilleries Company of Sri Lanka PLC reported stable sales volumes supported by steady domestic demand. Higher excise-related costs, however, continued to weigh on margins."
+    },
+    {
+      "id": "news_011",
+      "title": "Lion Brewery Faces Margin Pressure From Rising Production Costs",
+      "source": "Business Times",
+      "publishedDate": "2025-01-08",
+      "summary": "Input cost inflation impacts brewery profitability.",
+      "tags": ["Company", "CSE", "Beverages"],
+      "content": "Lion Brewery (Ceylon) PLC stated that rising raw material and energy costs affected profitability. While sales volumes remained stable, margin pressures persisted."
+    },
+    {
+      "id": "news_012",
+      "title": "Watawala Plantations Benefits From Improved Tea Auction Prices",
+      "source": "Daily FT",
+      "publishedDate": "2025-01-07",
+      "summary": "Higher tea prices support plantation sector revenues.",
+      "tags": ["Company", "CSE", "Plantations"],
+      "content": "Watawala Plantations PLC reported revenue growth supported by higher average tea prices at Colombo auctions. Improved pricing trends partially offset higher wage and input costs."
+    },
+    {
+      "id": "news_013",
+      "title": "Lanka IOC Maintains Steady Operations Amid Fuel Price Stability",
+      "source": "Business Times",
+      "publishedDate": "2025-01-06",
+      "summary": "Stable global oil prices support predictable margins.",
+      "tags": ["Company", "CSE", "Energy"],
+      "content": "Lanka IOC PLC reported steady fuel distribution volumes as global oil prices remained relatively stable. The company noted improved predictability in operating margins."
+    },
+    {
+      "id": "news_014",
+      "title": "Vidullanka Expands Renewable Energy Portfolio With New Projects",
+      "source": "Investment Weekly",
+      "publishedDate": "2025-01-05",
+      "summary": "Renewable expansion aligns with national energy targets.",
+      "tags": ["Company", "CSE", "Utilities"],
+      "content": "Vidullanka PLC announced progress in expanding its renewable energy portfolio through new mini-hydro projects. The company stated that expansion aligns with long-term sustainability goals."
+    },
+    {
+      "id": "news_015",
+      "title": "Wymans Reports Improved Export Performance Across Key Segments",
+      "source": "Daily FT",
+      "publishedDate": "2025-01-04",
+      "summary": "Export demand supports diversified earnings growth.",
+      "tags": ["Company", "CSE", "Industrials"],
+      "content": "Wymans PLC reported improved export performance driven by stronger demand in agricultural and industrial segments. Management cited favorable global market conditions."
+    },
+    {
+      "id": "news_016",
+      "title": "Access Engineering Secures New Infrastructure Contracts",
+      "source": "Business Times",
+      "publishedDate": "2025-01-03",
+      "summary": "Public-sector projects strengthen order book.",
+      "tags": ["Company", "CSE", "Construction"],
+      "content": "Access Engineering PLC announced the award of several public-sector infrastructure contracts. The company stated that the new projects strengthen its medium-term order book."
+    },
+    {
+      "id": "news_017",
+      "title": "HNB Assurance Records Growth in Life Insurance Premiums",
+      "source": "Investment Weekly",
+      "publishedDate": "2025-01-02",
+      "summary": "Higher policy uptake supports insurance sector growth.",
+      "tags": ["Company", "CSE", "Insurance"],
+      "content": "HNB Assurance PLC reported growth in life insurance premiums driven by increased policy uptake and improved customer retention. The company noted steady demand for protection products."
+    },
+    {
+      "id": "news_018",
+      "title": "LOLC Holdings Reports Steady Performance Across Regional Operations",
+      "source": "Daily FT",
+      "publishedDate": "2025-01-01",
+      "summary": "Balanced contributions from domestic and overseas markets.",
+      "tags": ["Company", "CSE", "Finance"],
+      "content": "LOLC Holdings PLC reported stable performance across its regional operations, with balanced contributions from domestic and overseas markets. Management highlighted portfolio diversification."
+    },
+    {
+      "id": "news_019",
+      "title": "Lanka Hospitals Sees Higher Patient Volumes in Specialized Care",
+      "source": "Business Times",
+      "publishedDate": "2024-12-31",
+      "summary": "Specialized healthcare demand supports revenue growth.",
+      "tags": ["Company", "CSE", "Healthcare"],
+      "content": "Lanka Hospitals Corporation PLC reported increased patient volumes in specialized care units. The company cited rising demand for advanced medical services."
+    },
+    {
+      "id": "news_020",
+      "title": "Vidullanka PLC Reports Lower Power Generation and Thus Lower Profits",
+      "source": "Daily FT",
+      "publishedDate": "2024-12-30",
+      "summary": "Reduced rainfall impacts energy output and earnings.",
+      "tags": ["Company", "CSE", "Energy"],
+      "content": "Vidullanka PLC reported a decline in power generation during the period, primarily due to adverse weather conditions and lower rainfall affecting several of its hydro power plants. The company stated that the reduced generation negatively impacted revenue and profitability, while ongoing cost pressures further weighed on financial performance."
     }
-  ]
+    ]
 }
