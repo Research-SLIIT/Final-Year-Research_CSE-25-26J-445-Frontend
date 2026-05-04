@@ -670,7 +670,7 @@ export default function Dashboard() {
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <span className="bg-gradient-to-r from-blue-600 to-indigo-500 bg-clip-text text-transparent">
-              Market Dashboard testt
+              Market Dashboard
             </span>
             <Badge
               variant="outline"
