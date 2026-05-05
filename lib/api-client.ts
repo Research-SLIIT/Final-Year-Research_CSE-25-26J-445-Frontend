@@ -1,4 +1,4 @@
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://13.60.26.93:8080/api/v1';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://13.60.84.151:8080/api/v1';
 
 export async function apiClient<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
