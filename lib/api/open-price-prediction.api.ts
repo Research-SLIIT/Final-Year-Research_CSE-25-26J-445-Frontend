@@ -12,7 +12,7 @@ import { normalizeSymbol } from "@/lib/utils";
 
 // API base URL - configured via environment variable
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://13.60.84.151:8080/api/v1";
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://16.171.27.203:8080/api/v1";
 
 /**
  * Check health of the open price prediction service

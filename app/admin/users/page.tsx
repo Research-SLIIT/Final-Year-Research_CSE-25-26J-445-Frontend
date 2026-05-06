@@ -13,7 +13,7 @@ export default function UsersPage() {
     const fetchUsers = async () => {
       try {
         const token = localStorage.getItem("cse_auth_token")
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://13.60.84.151:8080"}/api/v1/user/all/users`, {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://16.171.27.203:8080"}/api/v1/user/all/users`, {
           headers: {
             "Authorization": `Bearer ${token}`
           }

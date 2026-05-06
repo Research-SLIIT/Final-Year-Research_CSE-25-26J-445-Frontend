@@ -13,7 +13,7 @@ export default function LogsPage() {
     const fetchLogs = async () => {
       try {
         const token = localStorage.getItem("cse_auth_token")
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://13.60.84.151:8080"}/api/v1/logs`, {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://16.171.27.203:8080"}/api/v1/logs`, {
           headers: {
             "Authorization": `Bearer ${token}`
           }
