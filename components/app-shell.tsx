@@ -5,7 +5,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
-import { BarChart3, TrendingUp, PieChart, Settings, Menu, X, LogOut, LogIn, User, Newspaper, Banknote, PanelLeft, Lock } from "lucide-react"
+import { BarChart3, TrendingUp, PieChart, Settings, Menu, X, LogOut, LogIn, User, Newspaper, Banknote, PanelLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuthStore } from "@/stores/useAuthStore"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -64,12 +64,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         } catch (e) {}
       }
       router.push("/")
-    } else if (isProtectedPage && !pathname.startsWith("/pricing") && !pathname.startsWith("/settings")) {
-      // Check for premium routes
-      const currentNav = protectedNavigation.find((n) => pathname.startsWith(n.href) && n.href !== "/")
-      if (currentNav?.premium && (!isAuthenticated || !user?.isPremium)) {
-        router.push("/pricing")
-      }
     }
   }, [isAuthenticated, pathname, router, mounted, loading])
 
@@ -104,9 +98,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {protectedNavigation.map((item) => {
               const Icon = item.icon
               const isActive = pathname === item.href
-              const isLocked = item.premium && (!isAuthenticated || !user?.isPremium)
               return (
-                <Link key={item.href} href={isLocked ? "/pricing" : item.href}>
+                <Link key={item.href} href={item.href}>
                   <Button
                     variant={isActive ? "default" : "ghost"}
                     className="w-full justify-start gap-2 mb-2 relative"
@@ -114,7 +107,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   >
                     <Icon className="h-4 w-4" />
                     <span>{item.name}</span>
-                    {isLocked && <Lock className="h-3 w-3 absolute right-4 text-muted-foreground" />}
                   </Button>
                 </Link>
               )
