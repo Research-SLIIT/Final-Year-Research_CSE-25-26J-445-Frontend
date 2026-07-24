@@ -348,13 +348,13 @@ export default function AnalyzeBox() {
                           {ex.reaction_label === "positive" &&
                             Number.isFinite(ex.max_daily_up) && (
                               <span className="text-green-500 font-medium">
-                                +{Number(ex.max_daily_up).toFixed(2)}% upside
+                                +{Number(ex.max_daily_up).toFixed(2)}% Upside
                               </span>
                             )}
                           {ex.reaction_label === "negative" &&
                             Number.isFinite(ex.max_daily_down) && (
                               <span className="text-red-500 font-medium">
-                                {Number(ex.max_daily_down).toFixed(2)}% downside
+                                {Number(ex.max_daily_down).toFixed(2)}% Downside
                               </span>
                             )}
                           {ex.reaction_label === "neutral" && (
