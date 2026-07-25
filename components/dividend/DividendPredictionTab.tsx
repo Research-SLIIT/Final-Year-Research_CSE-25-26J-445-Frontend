@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { TickerSearchDIV } from "@/components/ticker-search_div"
 import PredictionDashboard from '@/components/dividend/PredictionDashboard'
+import { PredictionDashboardSkeleton } from '@/components/dividend/PredictionDashboardSkeleton'
 import { GlossaryMap } from "@/lib/types/dividend/glossary"
 
 interface DividendPredictionTabProps {
@@ -43,8 +44,14 @@ export function DividendPredictionTab({
         </CardContent>
       </Card>
 
+      {/* Loading placeholder - takes precedence so a re-run swaps stale results
+          for the skeleton rather than leaving the previous firm's numbers up */}
+      {loading && <PredictionDashboardSkeleton />}
+
       {/* Results */}
-      {results && <PredictionDashboard data={results.data} firm={inputs.symbol} year={2026} glossary={glossary} />}
+      {!loading && results && (
+        <PredictionDashboard data={results.data} firm={inputs.symbol} year={2026} glossary={glossary} />
+      )}
 
       {/* Empty State */}
       {!results && !loading && (

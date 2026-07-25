@@ -11,6 +11,13 @@ import { HistoricalDataTab } from "@/components/dividend/HistoricalDataTab"
 import { ComparisonTab } from "@/components/dividend/ComparisonTab"
 import { GlossaryMap } from "@/lib/types/dividend/glossary"
 
+/** Minimum time a loading skeleton stays visible.
+ *  These endpoints often answer in well under 100ms, which makes the skeleton
+ *  flash on and off. Awaiting this alongside the request (never in sequence)
+ *  keeps the transition readable without slowing down a genuinely slow call. */
+const MIN_SKELETON_MS = 700
+const skeletonFloor = () => new Promise((resolve) => setTimeout(resolve, MIN_SKELETON_MS))
+
 export default function DividendPredictionPage() {
   const { inputs, results, loading, setInputs, setResults, setLoading } = useDividendStore()
   const { toast } = useToast()
@@ -72,7 +79,10 @@ export default function DividendPredictionPage() {
 
     setHistoricalLoading(true)
     try {
-      const data = await fetchHistoricalDividendData(inputs.symbol)
+      const [data] = await Promise.all([
+        fetchHistoricalDividendData(inputs.symbol),
+        skeletonFloor(),
+      ])
       setHistoricalData(data)
     } catch (error) {
       toast({
@@ -113,6 +123,7 @@ export default function DividendPredictionPage() {
       const [data1, data2] = await Promise.all([
         fetchHistoricalDividendData(compareSymbol1),
         fetchHistoricalDividendData(compareSymbol2),
+        skeletonFloor(),
       ])
       setComparisonData1(data1)
       setComparisonData2(data2)
@@ -136,13 +147,13 @@ export default function DividendPredictionPage() {
 
     setLoading(true)
     try {
+      const [result, glossary_res] = await Promise.all([
+        predictDividend(inputs.symbol),
+        fetchGlossary(),
+        skeletonFloor(),
+      ])
 
-
-      const result = await predictDividend(inputs.symbol)
-      const glossary_res = await fetchGlossary()
       setGlossary(glossary_res)
-      console.log("RRRR", result)
-      console.log("GGGG", glossary_res)
       setResults(result)
     } catch (error) {
       toast({

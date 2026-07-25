@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { TickerSearchDIV } from "@/components/ticker-search_div"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
+import { HistoricalDataSkeleton } from "@/components/dividend/PredictionDashboardSkeleton"
 import {
   LineChart,
   Line,
@@ -62,8 +63,11 @@ export function HistoricalDataTab({
         </CardContent>
       </Card>
 
+      {/* Loading placeholder */}
+      {loading && <HistoricalDataSkeleton />}
+
       {/* Historical Data Display */}
-      {historicalData && historicalData.records && historicalData.records.length > 0 && (
+      {!loading && historicalData && historicalData.records && historicalData.records.length > 0 && (
         <div className="space-y-4">
           <Card className="bg-card border-border">
             <CardHeader>

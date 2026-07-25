@@ -3,6 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { TickerSearchDIV } from "@/components/ticker-search_div"
+import { ComparisonSkeleton } from "@/components/dividend/PredictionDashboardSkeleton"
 import {
   BarChart,
   Bar,
@@ -91,8 +92,11 @@ export function ComparisonTab({
         </CardContent>
       </Card>
 
+      {/* Loading placeholder */}
+      {loading && <ComparisonSkeleton />}
+
       {/* Comparison Data Display */}
-      {comparisonData1 && comparisonData2 && (
+      {!loading && comparisonData1 && comparisonData2 && (
         <div className="space-y-4">
           {/* Comparison Chart */}
           <Card className="bg-card border-border">

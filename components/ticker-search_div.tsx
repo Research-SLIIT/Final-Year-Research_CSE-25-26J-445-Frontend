@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { searchTickers, type Company } from "@/lib/fakeApi"
+import { type Company } from "@/lib/fakeApi"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command"
@@ -21,25 +21,25 @@ export function TickerSearchDIV({ onSelect, placeholder = "Search stocks...", va
   const [query, setQuery] = useState("")
   const [selectedValue, setSelectedValue] = useState(value || "")
 
-  // Example companies to show when search is empty
+  // The 15 firms present in the financial_records collection (2011-2024).
+  // `symbol` must be the FIRM code the backend stores - the previous list sent
+  // full company names that no record matched, so every lookup 404'd.
   const exampleCompanies: Company[] = [
-
-    // DIVIDEND STOCKS
-    { symbol: "BALANGODA PLANTATIONS PLC", name: "Balangoda Plantations PLC", sector: "Plantations" },
-    { symbol: "Carson Cumberbatch PLC", name: "Carson Cumberbatch PLC", sector: "Food & Beverage" },
-    { symbol: "Lion Brewery (Ceylon) PLC", name: "Lion Brewery (Ceylon) PLC", sector: "Food & Beverage" },
-    { symbol: "Ceylon Brew Holding", name: "Ceylon Beverage Holdings", sector: "Food & Beverage" },
-    { symbol: "Ceylon Tobacco Company PLC", name: "Ceylon Tobacco Company PLC", sector: "Tobacco" },
-    { symbol: "DCSL", name: "DCSL Breweries Lanka", sector: "Food & Beverage" },
-    { symbol: "Keells Food Products PLC", name: "Keells Food Products PLC", sector: "Food & Beverage" },
-    { symbol: "Horana Plantations PLC", name: "Horana Plantations PLC", sector: "Plantations" },
-    { symbol: "Renuka Agri Foods PLC", name: "Renuka Agri Foods PLC", sector: "Food & Beverage" },
-    { symbol: "Raigam Wayamba Salterns PLC", name: "Raigam Wayamba Salterns PLC", sector: "Food & Beverage" },
-    { symbol: "Renuka Shaw Wallace PLC", name: "Renuka Shaw Wallace PLC", sector: "Food & Beverage" },
-    { symbol: "Tea Smallholder Factories PLC", name: "Tea Smallholder Factories PLC", sector: "Food & Beverage" },
-    // { symbol: "CTEA", name: "Ceylon Tea Services PLC", sector: "Plantations" },
-    // { symbol: "TSH", name: "Tea Small Holder Factories PLC", sector: "Plantations" },
-
+    { symbol: "BALA", name: "Balangoda Plantations PLC", sector: "Plantations" },
+    { symbol: "BFL", name: "Bairaha Farms PLC", sector: "Food & Beverage" },
+    { symbol: "CARG", name: "Cargills (Ceylon) PLC", sector: "Food & Staples Retailing" },
+    { symbol: "CBH", name: "Ceylon Beverage Holdings PLC", sector: "Food & Beverage" },
+    { symbol: "CCS", name: "Ceylon Cold Stores PLC", sector: "Food & Beverage" },
+    { symbol: "CTC", name: "Ceylon Tobacco Company PLC", sector: "Tobacco" },
+    { symbol: "CTEA", name: "Dilmah Ceylon Tea Company PLC", sector: "Food & Beverage" },
+    { symbol: "HVA", name: "HVA Foods PLC", sector: "Food & Beverage" },
+    { symbol: "KFP", name: "Keells Food Products PLC", sector: "Food & Beverage" },
+    { symbol: "KTH", name: "Kotmale Holdings PLC", sector: "Food & Beverage" },
+    { symbol: "MAL", name: "Malwatte Valley Plantations PLC", sector: "Plantations" },
+    { symbol: "RAF", name: "Renuka Agri Foods PLC", sector: "Food & Beverage" },
+    { symbol: "RF", name: "Renuka Foods PLC", sector: "Food & Beverage" },
+    { symbol: "SOY", name: "Convenience Foods (Lanka) PLC", sector: "Food & Beverage" },
+    { symbol: "TSH", name: "Tea Smallholder Factories PLC", sector: "Food & Beverage" },
   ]
 
   useEffect(() => {
@@ -50,18 +50,25 @@ export function TickerSearchDIV({ onSelect, placeholder = "Search stocks...", va
   }, [value, selectedValue])
 
   useEffect(() => {
-    const handleSearch = async () => {
-      if (query.length === 0) {
+    // Filter the seeded firms rather than querying the wider CSE list: only
+    // these have financial records, so offering anything else guarantees a 404.
+    const handleSearch = () => {
+      const q = query.trim().toLowerCase()
+      if (q.length === 0) {
         setCompanies(exampleCompanies)
         return
       }
-      setLoading(true)
-      const results = await searchTickers(query)
-      setCompanies(results)
-      setLoading(false)
+      setCompanies(
+        exampleCompanies.filter(
+          (c) =>
+            c.symbol.toLowerCase().includes(q) ||
+            c.name.toLowerCase().includes(q) ||
+            (c.sector ?? "").toLowerCase().includes(q),
+        ),
+      )
     }
 
-    const timer = setTimeout(handleSearch, 300)
+    const timer = setTimeout(handleSearch, 200)
     return () => clearTimeout(timer)
   }, [query])
 
