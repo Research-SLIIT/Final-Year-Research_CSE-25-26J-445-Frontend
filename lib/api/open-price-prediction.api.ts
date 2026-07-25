@@ -10,9 +10,11 @@ import {
 } from "@/lib/types/open-price-prediction.types";
 import { normalizeSymbol } from "@/lib/utils";
 
-// API base URL - configured via environment variable
+// API base URL - configured via environment variable.
+// Must include the gateway's global prefix (/api/v1); the controller is mounted
+// at `/open-price` under that prefix, so the full path is /api/v1/open-price/*.
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3400";
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3400/api/v1";
 
 /**
  * Check health of the open price prediction service
