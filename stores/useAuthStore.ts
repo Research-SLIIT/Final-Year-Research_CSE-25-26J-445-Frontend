@@ -1,5 +1,5 @@
 import { create } from "zustand"
-import { apiClient } from "@/lib/api-client"
+import { apiClient, ApiError } from "@/lib/api-client"
 
 export interface User {
   id: string
@@ -127,6 +127,15 @@ export const useAuthStore = create<AuthStore>((set) => ({
       localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user))
       set({ user, isAuthenticated: true })
     } catch (error) {
+      // An expired or invalid token means the session is no longer valid.
+      // Clear it and drop to the unauthenticated state so the app can redirect
+      // to login, instead of leaving a stale, half-authenticated session.
+      if (error instanceof ApiError && error.status === 401) {
+        localStorage.removeItem(STORAGE_KEY)
+        localStorage.removeItem(USER_STORAGE_KEY)
+        set({ user: null, token: null, isAuthenticated: false })
+        return
+      }
       console.error("Failed to refresh user profile:", error)
     }
   },
