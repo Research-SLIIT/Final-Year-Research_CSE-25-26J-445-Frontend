@@ -76,11 +76,11 @@ InvestWise is the client half of a research platform for the **Colombo Stock Exc
 
 <tr><td><b>📊 Market Dashboard</b></td><td><a href="app/page.tsx"><code>/</code></a></td><td>Live ASPI and S&P SL20 indices, all-sector performance, gainers/losers, turnover, market open/closed status and a CSE news ticker — pulled live from <code>cse.lk</code> with graceful static fallbacks when the upstream is unreachable.</td></tr>
 
-<tr><td><b>🩺 Risk Analysis</b></td><td><a href="app/risk/page.tsx"><code>/risk</code></a></td><td>Type a ticker; watch a 6-stage AI pipeline narrate itself in real time over SSE; get a projected next-quarter Altman Z-Score on an animated gauge, a Safe/Grey/Distress verdict, a SHAP feature-impact breakdown split into positive and negative drivers, the extracted financial ratios, and a written explanation.</td></tr>
+<tr><td><b>🩺 Risk Analysis</b></td><td><a href="app/risk/page.tsx"><code>/risk</code></a></td><td>Type a ticker; watch two AI pipelines narrate themselves in real time over SSE (a 5-stage Z-Score analysis and a 3-stage report health check); get a projected 90-day Altman Z-Score on an animated gauge, a Safe/Grey/Distress verdict, a SHAP feature-impact breakdown split into positive and negative drivers, the extracted financial ratios, and a written explanation.</td></tr>
 
 <tr><td><b>📈 Price Prediction</b></td><td><a href="app/predict/page.tsx"><code>/predict</code></a></td><td>T+5 open-price forecast from a 3-model gradient-boosting ensemble, with a forecast line chart, per-day delta bars, confidence badges, ensemble feature importance, plus a full historical tab — OHLC, volume/turnover and a raw OHLCV table.</td></tr>
 
-<tr><td><b>💰 Dividend Prediction</b></td><td><a href="app/dividend/page.tsx"><code>/dividend</code></a></td><td>Probability that a company will <b>cut</b> its dividend, with every one of the 14 engineered features shown as a card, <b>KaTeX-rendered formulas</b> explaining how each was derived, a year-over-year comparison tab, a historical data tab, and an LLM narrative.</td></tr>
+<tr><td><b>💰 Dividend Prediction</b></td><td><a href="app/dividend/page.tsx"><code>/dividend</code></a></td><td>Probability that a company will <b>cut</b> its dividend, on a Very Safe → Very High risk scale, with signed per-factor contributions, a financial-strength breakdown, an LLM narrative rationale, a year-over-year comparison tab and a historical data tab.</td></tr>
 
 <tr><td><b>📰 News Sentiment</b></td><td><a href="app/news/page.tsx"><code>/news</code></a></td><td>Browse scraped CSE news, or paste any article into the analyser. A terminal-style stream shows the two-stage cascade thinking, then renders the full decision tree — Stage 1 market-moving score vs threshold, Stage 2 ML direction, lexicon score, fusion weights — plus retrieved historical precedents.</td></tr>
 
@@ -89,7 +89,7 @@ InvestWise is the client half of a research platform for the **Colombo Stock Exc
 <tr><td><b>🛡 Admin Console</b></td><td><a href="app/admin/"><code>/admin</code></a></td><td>User management and a service-wide log viewer, on its own layout outside the main app shell.</td></tr>
 </table>
 
-> **The design thesis.** A prediction with no visible reasoning is not a research artifact — it's a number. Every ML surface in this app is built around exposing the model's intermediate state: SHAP attributions rather than a single score, decision trees with the actual fusion weights rather than a label, KaTeX formulas rather than opaque feature names, and streamed pipeline stages rather than a spinner. That is what makes the four backend research components *inspectable* by an examiner instead of merely demonstrable.
+> **The design thesis.** A prediction with no visible reasoning is not a research artifact — it's a number. Every ML surface in this app is built around exposing the model's intermediate state: SHAP attributions rather than a single score, decision trees carrying the actual fusion weights rather than a label, signed per-factor contributions rather than opaque feature names, and streamed pipeline stages rather than a spinner. That is what makes the four backend research components *inspectable* by an examiner instead of merely demonstrable.
 
 ---
 
@@ -100,11 +100,11 @@ InvestWise is the client half of a research platform for the **Colombo Stock Exc
 | | Walkthrough | What you'll see | File |
 |:--:|---|---|---|
 | ▶️ | **Full product tour** | Sign-in → dashboard → all four ML features end to end | [`demo-full-walkthrough.mp4`](docs/videos/demo-full-walkthrough.mp4) |
-| ▶️ | **Risk analysis, streaming** | The 6-stage SSE pipeline narrating itself, then the Z-Score gauge and SHAP breakdown resolving | [`demo-risk-analysis.gif`](docs/videos/demo-risk-analysis.gif) |
+| ▶️ | **Risk analysis, streaming** | The SSE pipeline narrating all 5 stages, then the Z-Score gauge and SHAP breakdown resolving | [`demo-risk-analysis.gif`](docs/videos/demo-risk-analysis.gif) |
 | ▶️ | **News sentiment** | Terminal-style AI stream, then the full decision tree with fusion weights and historical precedents | [`demo-news-sentiment.gif`](docs/videos/demo-news-sentiment.gif) |
-| ▶️ | **Price prediction** | Ticker search → T+5 forecast → delta bars → feature importance → historical OHLCV tab | [`demo-price-prediction.gif`](docs/videos/demo-price-prediction.gif) |
-| ▶️ | **Dividend prediction** | Cut probability, all 14 feature cards, KaTeX formula modals, comparison and history tabs | [`demo-dividend.gif`](docs/videos/demo-dividend.gif) |
-| ▶️ | **Responsive + dark mode** | Sidebar collapse, mobile drawer, theme switch across every page | [`demo-responsive-theme.gif`](docs/videos/demo-responsive-theme.gif) |
+| ▶️ | **Price prediction** | Ticker search → T+5 forecast → delta bars → historical OHLCV tab | [`demo-price-prediction.gif`](docs/videos/demo-price-prediction.gif) |
+| ▶️ | **Dividend prediction** | Cut probability, factor contributions, LLM narrative, comparison tab | [`demo-dividend.gif`](docs/videos/demo-dividend.gif) |
+| ▶️ | **Dashboard tour** | Live market data, sidebar collapse, navigation across every page | [`demo-dashboard-tour.gif`](docs/videos/demo-dashboard-tour.gif) |
 
 <div align="center">
 
@@ -131,38 +131,48 @@ InvestWise is the client half of a research platform for the **Colombo Stock Exc
 <table>
 <tr>
 <td width="50%" align="center">
-<img src="docs/screenshots/02-risk-analysis-result.png" alt="Risk analysis result"><br>
-<sub><b>Risk Analysis</b> — Z-Score gauge, risk zone verdict, SHAP drivers</sub>
+<img src="docs/screenshots/03-risk-analysis-streaming.png" alt="Risk analysis streaming"><br>
+<sub><b>Live SSE pipeline</b> — both analyses narrating themselves stage by stage</sub>
 </td>
 <td width="50%" align="center">
-<img src="docs/screenshots/03-risk-analysis-streaming.png" alt="Risk analysis streaming"><br>
-<sub><b>Live SSE pipeline</b> — 6 stages narrated as they execute</sub>
+<img src="docs/screenshots/02b-risk-zscore-gauge.png" alt="Z-Score prediction"><br>
+<sub><b>Z-Score verdict</b> — projected 2.7649 → Grey Zone, from the SVR model</sub>
 </td>
 </tr>
 <tr>
 <td width="50%" align="center">
 <img src="docs/screenshots/04-shap-feature-impact.png" alt="SHAP feature impact"><br>
-<sub><b>SHAP attribution</b> — positive vs negative drivers, ranked</sub>
+<sub><b>SHAP attribution</b> — signed per-feature impact, ranked, split into drivers</sub>
 </td>
+<td width="50%" align="center">
+<img src="docs/screenshots/19-risk-financial-ratios.png" alt="Financial ratios"><br>
+<sub><b>Extracted ratios</b> — pulled from the quarterly PDF by Gemini</sub>
+</td>
+</tr>
+<tr>
 <td width="50%" align="center">
 <img src="docs/screenshots/05-price-prediction.png" alt="Price prediction"><br>
 <sub><b>Price Prediction</b> — T+5 ensemble forecast + delta bars</sub>
 </td>
-</tr>
-<tr>
 <td width="50%" align="center">
 <img src="docs/screenshots/06-price-historical.png" alt="Historical OHLCV"><br>
 <sub><b>Historical tab</b> — OHLC, volume, turnover, raw data table</sub>
 </td>
+</tr>
+<tr>
 <td width="50%" align="center">
 <img src="docs/screenshots/07-dividend-prediction.png" alt="Dividend prediction"><br>
-<sub><b>Dividend</b> — P(cut) with all 14 engineered feature cards</sub>
+<sub><b>Dividend</b> — P(cut) against the tuned decision threshold</sub>
+</td>
+<td width="50%" align="center">
+<img src="docs/screenshots/08-dividend-feature-contributions.png" alt="Feature contributions"><br>
+<sub><b>Feature contributions</b> — signed impact per financial factor</sub>
 </td>
 </tr>
 <tr>
 <td width="50%" align="center">
-<img src="docs/screenshots/08-dividend-formula-modal.png" alt="KaTeX formula modal"><br>
-<sub><b>Feature explanation</b> — KaTeX-rendered derivation</sub>
+<img src="docs/screenshots/18-dividend-ai-narrative.png" alt="Dividend AI narrative"><br>
+<sub><b>LLM narrative</b> — plain-language rationale for the verdict</sub>
 </td>
 <td width="50%" align="center">
 <img src="docs/screenshots/09-dividend-comparison.png" alt="Dividend comparison"><br>
@@ -201,15 +211,27 @@ InvestWise is the client half of a research platform for the **Colombo Stock Exc
 </tr>
 <tr>
 <td width="50%" align="center">
-<img src="docs/screenshots/16-dark-mode.png" alt="Dark mode"><br>
-<sub><b>Dark theme</b> — full parity across every surface</sub>
+<img src="docs/screenshots/16-light-mode.png" alt="Light theme"><br>
+<sub><b>Light theme</b> — the app ships dark by default; light has full parity</sub>
 </td>
 <td width="50%" align="center">
 <img src="docs/screenshots/17-mobile-responsive.png" alt="Mobile responsive"><br>
-<sub><b>Mobile</b> — drawer navigation, stacked charts</sub>
+<sub><b>Mobile</b> — 390×844 viewport, stacked layout</sub>
 </td>
 </tr>
 </table>
+
+<details>
+<summary><b>Also captured</b> — full-page variants</summary>
+
+| File | Contents |
+|---|---|
+| [`01-dashboard.png`](docs/screenshots/01-dashboard.png) | Full-page market dashboard |
+| [`02-risk-analysis-result.png`](docs/screenshots/02-risk-analysis-result.png) | Full-page completed risk analysis, top to bottom |
+
+Every screenshot in this README was captured from the running application against the live backend — real CSE filings, real model outputs, real Gemini extraction. See the [capture guide](docs/screenshots/README.md) for how they were produced.
+
+</details>
 
 ---
 
@@ -654,9 +676,12 @@ flowchart TB
 
 ---
 
-### ③ Dividend prediction — KaTeX-documented feature engineering
+### ③ Dividend prediction — factor contributions and LLM rationale
 
-The most explanation-dense screen in the product. The backend returns 14 engineered features; the UI renders each as a card and lets the user open a modal showing the **KaTeX-rendered formula** that produced it. That turns an opaque feature vector into something a finance examiner can verify line by line.
+The dividend screen turns a single probability into an auditable verdict: a Very Safe → Very High risk scale, signed per-factor contributions, a financial-strength breakdown chart, and a written LLM rationale.
+
+> [!NOTE]
+> A richer explainability layer is **implemented but not yet wired up**. `FeatureCard`, `FeatureExplanationModal` and `Latex` exist and would render each engineered feature as a clickable card with a KaTeX formula — but `FeatureCard` is imported into `PredictionDashboard` without ever being rendered, so the modal is unreachable. The glossary endpoint that feeds it also currently hangs. Both are logged in [Known Issues](#-known-issues); the diagram below shows the intended wiring, with the dead path marked.
 
 ```mermaid
 flowchart LR
@@ -673,18 +698,18 @@ flowchart LR
         A5["/dividend-prediction/history<br/>all stored years"]
     end
 
-    subgraph UI["Tabs"]
+    subgraph UI["Tabs — live"]
         direction TB
-        T1["<b>DividendPredictionTab</b><br/>P(cut) verdict · threshold 0.822<br/>14 FeatureCards"]
-        T2["<b>ComparisonTab</b><br/>year-over-year feature deltas"]
+        T1["<b>DividendPredictionTab</b><br/>P(cut) · risk scale<br/>factor contributions<br/>financial-strength chart<br/>LLM narrative"]
+        T2["<b>ComparisonTab</b><br/>year-over-year deltas"]
         T3["<b>HistoricalDataTab</b><br/>full record table"]
     end
 
-    subgraph EXP["Explainability"]
+    subgraph EXP["Explainability — implemented, NOT mounted"]
         direction TB
-        E1["<b>FeatureExplanationModal</b>"]
-        E2["<b>Latex</b> · KaTeX renderer<br/>e.g. ROA = net_profit / net_assets"]
-        E3["Glossary text per feature"]
+        E1["<b>FeatureCard</b><br/>never rendered in JSX"]
+        E2["<b>FeatureExplanationModal</b>"]
+        E3["<b>Latex</b> · KaTeX renderer"]
     end
 
     SK["<b>PredictionDashboardSkeleton</b><br/>shown while loading"]
@@ -692,22 +717,21 @@ flowchart LR
     TS --> API
     A1 --> T1
     A2 --> T1
-    A3 --> E3
     A4 --> T1
     A5 --> T3
     A1 --> T2
-    T1 --> E1 --> E2
-    E1 --> E3
+    A3 -.->|"endpoint hangs"| E1
+    E1 -.->|"unreachable"| E2 -.-> E3
     API -.->|"pending"| SK
 
     classDef inp fill:#f1f5f9,stroke:#475569,color:#0f172a
     classDef api fill:#10b981,stroke:#065f46,color:#fff
     classDef ui fill:#0ea5e9,stroke:#075985,color:#fff
-    classDef exp fill:#8b5cf6,stroke:#5b21b6,color:#fff
+    classDef dead fill:#94a3b8,stroke:#475569,color:#fff,stroke-dasharray: 5 4
     class TS inp
     class A1,A2,A3,A4,A5 api
     class T1,T2,T3,SK ui
-    class E1,E2,E3 exp
+    class E1,E2,E3 dead
 ```
 
 > [!IMPORTANT]
@@ -1061,6 +1085,9 @@ Documented rather than hidden — each is a small, well-understood fix.
 
 | Issue | Where | Impact | Fix |
 |---|---|---|---|
+| **`FeatureCard` never rendered** | [`components/dividend/PredictionDashboard.tsx`](components/dividend/PredictionDashboard.tsx) imports it; no `<FeatureCard>` exists anywhere in the repo | The whole KaTeX explainability layer — `FeatureCard` → `FeatureExplanationModal` → `Latex` — is unreachable dead code. Verified by capturing the live page: zero feature cards in the DOM. | Render `<FeatureCard>` per engineered feature inside `PredictionDashboard`, passing `featureKey`, `value` and `glossary` |
+| **Glossary endpoint hangs** | Backend `apps/Dividend-prediction-ml/routes/metadata.py` — `@cache(expire=86400)` on a **synchronous** `def get_glossary()` | `GET /dividend-prediction/metadata/glossary` never returns (verified: `http=000`, connection held open), so `fetchGlossary()` falls back to `{}`. Every other cached route in that file is `async def`. | Change `def get_glossary()` to `async def` — `fastapi-cache2`'s `@cache` only supports coroutine functions |
+| **Two different `API_BASE_URL` conventions** | [`lib/api-client.ts`](lib/api-client.ts) defaults to `…/api/v1`; [`lib/api/dividend_api.ts`](lib/api/dividend_api.ts) defaults to `…/api/v1/dividend-prediction/` — both read the same `NEXT_PUBLIC_API_BASE_URL` | Setting that env var satisfies one module and breaks the other, producing URLs like `/api/v1metadata/glossary` | Give the dividend client its own env var, or derive its path from the shared base |
 | **Hardcoded API host** | [`lib/sentimentApi.ts`](lib/sentimentApi.ts) — `http://127.0.0.1:3400/api/v1/sentiment/analyze` | Sentiment analysis breaks in any non-local deployment; it is the one client that bypasses `apiClient` | Route it through `apiClient` so it picks up `NEXT_PUBLIC_API_BASE_URL` and the JWT header like every other domain client |
 | **TypeScript errors suppressed at build** | [`next.config.mjs`](next.config.mjs) — `typescript.ignoreBuildErrors: true` | Type regressions ship silently; the compiler is not a safety net right now | Set to `false` and clear the resulting errors |
 | **Image optimisation disabled** | [`next.config.mjs`](next.config.mjs) — `images.unoptimized: true` | Larger payloads than necessary | Re-enable once remote image hosts are configured |
