@@ -1,0 +1,19 @@
+# Netlify configuration for the public demo deployment.
+#
+# The demo build runs with no backend at all — NEXT_PUBLIC_DEMO_MODE=1 makes every
+# API module replay the captured model output in public/demo-data/. The /api/cse/*
+# route handlers still run (as Netlify Functions) and hit cse.lk live, so the
+# market dashboard stays real.
+
+[build]
+  command = "npm run demo:build"
+  publish = ".next"
+
+[build.environment]
+  NEXT_PUBLIC_DEMO_MODE = "1"
+  NODE_VERSION = "22"
+  # 15 default build workers exhaust the container on this project's page count.
+  NODE_OPTIONS = "--max-old-space-size=4096"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
