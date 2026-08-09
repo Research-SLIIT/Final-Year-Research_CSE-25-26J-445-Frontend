@@ -797,7 +797,7 @@ flowchart TB
 | Requirement | Version |
 |---|---|
 | **Node.js** | ≥ 20 (22 recommended — `@types/node` targets 22) |
-| **Package manager** | pnpm (a `pnpm-lock.yaml` is committed) or npm |
+| **Package manager** | npm (a `package-lock.json` is committed) |
 | **Backend** | The [backend stack](https://github.com/Research-SLIIT/Final-Year-Research_CSE-25-26J-445-Backend) running on `:3400` for ML features |
 
 ### Install and run
@@ -807,8 +807,8 @@ git clone https://github.com/Research-SLIIT/Final-Year-Research_CSE-25-26J-445-F
 cd Final-Year-Research_CSE-25-26J-445-Frontend
 git checkout dev
 
-pnpm install          # or: npm install
-pnpm dev              # → http://localhost:3000
+npm ci                # exact versions from package-lock.json
+npm run dev           # → http://localhost:3000
 ```
 
 ### Environment
@@ -826,13 +826,13 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:3400/api/v1
 
 | Command | Does |
 |---|---|
-| `pnpm dev` | Dev server with hot reload on `:3000` |
-| `pnpm build` | Production build |
-| `pnpm start` | Serve the production build |
-| `pnpm lint` | ESLint |
-| `pnpm test` | Vitest in watch mode |
-| `pnpm test:run` | Vitest once — CI mode |
-| `pnpm test:coverage` | Coverage report (v8, HTML + text) |
+| `npm run dev` | Dev server with hot reload on `:3000` |
+| `npm run build` | Production build |
+| `npm start` | Serve the production build |
+| `npm run lint` | ESLint |
+| `npm test` | Vitest in watch mode |
+| `npm run test:run` | Vitest once — CI mode |
+| `npm run test:coverage` | Coverage report (v8, HTML + text) |
 
 ### What works without the backend
 
@@ -1185,7 +1185,6 @@ Documented rather than hidden — each is a small, well-understood fix.
 | **Hardcoded API host** | [`lib/sentimentApi.ts`](lib/sentimentApi.ts) — `http://127.0.0.1:3400/api/v1/sentiment/analyze` | Sentiment analysis breaks in any non-local deployment; it is the one client that bypasses `apiClient` | Route it through `apiClient` so it picks up `NEXT_PUBLIC_API_BASE_URL` and the JWT header like every other domain client |
 | **TypeScript errors suppressed at build** | [`next.config.mjs`](next.config.mjs) — `typescript.ignoreBuildErrors: true` | Type regressions ship silently; the compiler is not a safety net right now | Set to `false` and clear the resulting errors |
 | **Image optimisation disabled** | [`next.config.mjs`](next.config.mjs) — `images.unoptimized: true` | Larger payloads than necessary | Re-enable once remote image hosts are configured |
-| **Two lockfiles** | `pnpm-lock.yaml` + `package-lock.json` | Installs can resolve differently depending on which manager a contributor uses | Pick one — `pnpm-lock.yaml` is the newer of the two — and delete the other |
 | **Missing test peer dependency** | `@testing-library/react@16` requires `@testing-library/dom`, which is not in `devDependencies` | Every component test suite fails to collect on a clean install — `Cannot find module '@testing-library/dom'` | Add `@testing-library/dom@^10` to `devDependencies` |
 | **Company health history always 404s** | Backend `GET /financial-health/company/:code/all` | Returns `Company with code 'jkh_n0000' not found` for every company tried, including ones analysed seconds earlier — the history collection is never populated. `useCompanyHealthHistory` falls back to its empty state, and demo mode has no fixture to replay. | Write each completed analysis into the history collection, or drop the endpoint and the hook |
 | **News corpus not captured** | `public/demo-data/news/corpus.json` | Not yet harvested, so `/news` in demo mode falls back to the bundled mock articles — the one fabricated surface left in the demo. | Bring the stack up and run `npm run demo:harvest:news` |
