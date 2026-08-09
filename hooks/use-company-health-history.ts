@@ -9,15 +9,27 @@ import {
     CompanyHealthDataPoint
 } from '@/lib/types/company-health-history.types';
 import { getCompanyHealthHistory } from '@/lib/api/financial-health.api';
+import { cachedRequest, peekCache, type CacheOptions } from '@/lib/request-cache';
 
 interface UseCompanyHealthHistoryReturn {
     data: CompanyHealthHistoryResponse | null;
     chartData: ChartDataPoint[];
     loading: boolean;
     error: string | null;
-    fetchHistory: (companyCode: string) => Promise<void>;
+    fetchHistory: (companyCode: string, options?: CacheOptions) => Promise<void>;
     reset: () => void;
 }
+
+interface HistoryState {
+    code: string | null;
+    data: CompanyHealthHistoryResponse | null;
+    loading: boolean;
+    error: string | null;
+}
+
+const EMPTY_HISTORY: HistoryState = { code: null, data: null, loading: false, error: null };
+
+const cacheKey = (companyCode: string) => `health-history:${companyCode}`;
 
 /**
  * Parse a date string in M/D/YYYY format to a Date object
@@ -62,10 +74,20 @@ function transformToChartData(data: CompanyHealthDataPoint[]): ChartDataPoint[] 
  * Hook for managing company health history state and API calls
  * @returns Object with data, chartData, loading, error states and control functions
  */
-export function useCompanyHealthHistory(): UseCompanyHealthHistoryReturn {
-    const [data, setData] = useState<CompanyHealthHistoryResponse | null>(null);
-    const [loading, setLoading] = useState<boolean>(false);
-    const [error, setError] = useState<string | null>(null);
+/**
+ * @param companyCode The company being displayed. Passing it lets a remount
+ * render already-fetched history on the first frame instead of refetching.
+ */
+export function useCompanyHealthHistory(companyCode?: string): UseCompanyHealthHistoryReturn {
+    const [state, setState] = useState<HistoryState>(EMPTY_HISTORY);
+
+    let current = state;
+    if (companyCode && state.code !== companyCode) {
+        const hit = peekCache<CompanyHealthHistoryResponse>(cacheKey(companyCode));
+        current = hit ? { code: companyCode, data: hit, loading: false, error: null } : EMPTY_HISTORY;
+    }
+
+    const data = current.data;
 
     // Transform data for charting (memoized)
     const chartData = useMemo(() => {
@@ -73,38 +95,43 @@ export function useCompanyHealthHistory(): UseCompanyHealthHistoryReturn {
         return transformToChartData(data.data);
     }, [data]);
 
-    const fetchHistory = useCallback(async (companyCode: string) => {
-        if (!companyCode) {
-            setError('Please provide a company code');
+    const fetchHistory = useCallback(async (target: string, options?: CacheOptions) => {
+        if (!target) {
+            setState({ ...EMPTY_HISTORY, error: 'Please provide a company code' });
             return;
         }
 
-        setLoading(true);
-        setError(null);
+        const key = cacheKey(target);
+        if (!options?.force) {
+            const hit = peekCache<CompanyHealthHistoryResponse>(key);
+            if (hit) {
+                setState({ code: target, data: hit, loading: false, error: null });
+                return;
+            }
+        }
+
+        setState({ code: target, data: null, loading: true, error: null });
 
         try {
-            const result = await getCompanyHealthHistory(companyCode);
-            setData(result);
+            const result = await cachedRequest(key, () => getCompanyHealthHistory(target), options);
+            setState({ code: target, data: result, loading: false, error: null });
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to fetch company health history';
-            setError(errorMessage);
-            setData(null);
-        } finally {
-            setLoading(false);
+            setState((prev) =>
+                prev.code === target ? { ...prev, data: null, loading: false, error: errorMessage } : prev
+            );
         }
     }, []);
 
     const reset = useCallback(() => {
-        setData(null);
-        setLoading(false);
-        setError(null);
+        setState(EMPTY_HISTORY);
     }, []);
 
     return {
         data,
         chartData,
-        loading,
-        error,
+        loading: current.loading,
+        error: current.error,
         fetchHistory,
         reset,
     };

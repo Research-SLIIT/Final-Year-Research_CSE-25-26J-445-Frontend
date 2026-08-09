@@ -13,24 +13,13 @@ vi.mock("@/components/dividend/PredictionDashboard", () => ({
   ),
 }));
 
-// Mock TickerSearchDIV to simplify testing
-vi.mock("@/components/ticker-search_div", () => ({
-  TickerSearchDIV: ({ onSelect, value, placeholder }: any) => (
-    <input
-      data-testid="ticker-search"
-      placeholder={placeholder}
-      value={value}
-      onChange={(e) => onSelect({ symbol: e.target.value })}
-    />
-  ),
-}));
-
+// The tab no longer owns a company picker — the symbol comes from the route,
+// so there is nothing left here to mock.
 const defaultProps = {
   loading: false,
-  inputs: { symbol: "" },
+  symbol: "",
   results: null,
   glossary: {},
-  onSearch: vi.fn(),
   onPredict: vi.fn(),
 };
 
@@ -39,57 +28,49 @@ beforeEach(() => {
 });
 
 describe("DividendPredictionTab", () => {
-  it("renders the 'Stock Selection' label", () => {
-    render(<DividendPredictionTab {...defaultProps} />);
-    expect(screen.getByText("Stock Selection")).toBeInTheDocument();
+  it("names the company it is analysing", () => {
+    render(<DividendPredictionTab {...defaultProps} symbol="AAF" />);
+    expect(screen.getAllByText("AAF").length).toBeGreaterThan(0);
   });
 
-  it("renders the 'Analyze Dividend' button", () => {
+  it("renders the re-run button", () => {
     render(<DividendPredictionTab {...defaultProps} />);
-    expect(screen.getByRole("button", { name: /Analyze Dividend/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Re-run analysis/i })).toBeInTheDocument();
   });
 
-  it("button is disabled when inputs.symbol is empty string", () => {
-    render(<DividendPredictionTab {...defaultProps} inputs={{ symbol: "" }} />);
-    expect(screen.getByRole("button", { name: /Analyze Dividend/i })).toBeDisabled();
+  it("button is disabled when no symbol is provided", () => {
+    render(<DividendPredictionTab {...defaultProps} symbol="" />);
+    expect(screen.getByRole("button", { name: /Re-run analysis/i })).toBeDisabled();
   });
 
   it("button is disabled when loading is true", () => {
-    render(<DividendPredictionTab {...defaultProps} inputs={{ symbol: "AAF" }} loading={true} />);
+    render(<DividendPredictionTab {...defaultProps} symbol="AAF" loading={true} />);
     expect(screen.getByRole("button", { name: /Analyzing Dividend.../i })).toBeDisabled();
   });
 
   it("button label changes to 'Analyzing Dividend...' when loading", () => {
-    render(<DividendPredictionTab {...defaultProps} inputs={{ symbol: "AAF" }} loading={true} />);
+    render(<DividendPredictionTab {...defaultProps} symbol="AAF" loading={true} />);
     expect(screen.getByText("Analyzing Dividend...")).toBeInTheDocument();
   });
 
   it("button is enabled when a symbol is provided and not loading", () => {
-    render(<DividendPredictionTab {...defaultProps} inputs={{ symbol: "AAF" }} />);
-    expect(screen.getByRole("button", { name: /Analyze Dividend/i })).not.toBeDisabled();
+    render(<DividendPredictionTab {...defaultProps} symbol="AAF" />);
+    expect(screen.getByRole("button", { name: /Re-run analysis/i })).not.toBeDisabled();
   });
 
-  it("calls onPredict when Analyze Dividend button is clicked", async () => {
+  it("calls onPredict when the re-run button is clicked", async () => {
     const user = userEvent.setup();
     const onPredict = vi.fn();
-    render(<DividendPredictionTab {...defaultProps} inputs={{ symbol: "AAF" }} onPredict={onPredict} />);
-    await user.click(screen.getByRole("button", { name: /Analyze Dividend/i }));
+    render(<DividendPredictionTab {...defaultProps} symbol="AAF" onPredict={onPredict} />);
+    await user.click(screen.getByRole("button", { name: /Re-run analysis/i }));
     expect(onPredict).toHaveBeenCalledOnce();
-  });
-
-  it("calls onSearch when user changes ticker search input", async () => {
-    const user = userEvent.setup();
-    const onSearch = vi.fn();
-    render(<DividendPredictionTab {...defaultProps} onSearch={onSearch} />);
-    await user.type(screen.getByTestId("ticker-search"), "AAF");
-    expect(onSearch).toHaveBeenCalled();
   });
 
   it("shows PredictionDashboard when results are provided", () => {
     render(
       <DividendPredictionTab
         {...defaultProps}
-        inputs={{ symbol: "AAF" }}
+        symbol="AAF"
         results={mockDividendResult}
       />
     );
@@ -97,12 +78,12 @@ describe("DividendPredictionTab", () => {
   });
 
   it("shows empty state card when results is null and loading is false", () => {
-    render(<DividendPredictionTab {...defaultProps} />);
-    expect(screen.getByText(/Select a stock and run the analysis/i)).toBeInTheDocument();
+    render(<DividendPredictionTab {...defaultProps} symbol="AAF" />);
+    expect(screen.getByText(/No dividend prediction available/i)).toBeInTheDocument();
   });
 
   it("does not show empty state when loading is true", () => {
-    render(<DividendPredictionTab {...defaultProps} loading={true} />);
-    expect(screen.queryByText(/Select a stock and run the analysis/i)).not.toBeInTheDocument();
+    render(<DividendPredictionTab {...defaultProps} symbol="AAF" loading={true} />);
+    expect(screen.queryByText(/No dividend prediction available/i)).not.toBeInTheDocument();
   });
 });

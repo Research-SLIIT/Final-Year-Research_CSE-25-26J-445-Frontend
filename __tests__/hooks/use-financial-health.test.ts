@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useFinancialHealth } from "@/hooks/use-financial-health";
+import { invalidateCache } from "@/lib/request-cache";
 
 // Helper to get the last MockEventSource instance
 function getLastInstance() {
@@ -10,6 +11,9 @@ function getLastInstance() {
 
 beforeEach(() => {
   (EventSource as any).mockClear();
+  // Analyses are cached per company for the page session; every case here uses
+  // the same symbol, so the cache has to be cleared between them.
+  invalidateCache();
 });
 
 describe("useFinancialHealth", () => {

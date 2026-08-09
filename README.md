@@ -636,8 +636,8 @@ sequenceDiagram
 
 ```mermaid
 flowchart TB
-    U["User types a symbol"]
-    CS["<b>CompanySymbolSearch</b><br/>debounced autocomplete<br/>from /open-price/companies"]
+    U["User picks a company<br/>in the global search"]
+    CS["<b>/company/[symbol]</b><br/>route param drives the tab —<br/>no picker inside the module"]
 
     subgraph TAB1["Tab · Prediction"]
         direction TB
@@ -686,7 +686,7 @@ The dividend screen turns a single probability into an auditable verdict: a Very
 ```mermaid
 flowchart LR
     subgraph IN["Input"]
-        TS["<b>TickerSearchDIV</b><br/>symbol + year"]
+        TS["<b>route symbol</b><br/>from /company/[symbol]"]
     end
 
     subgraph API["Fetches"]
@@ -888,7 +888,7 @@ graph TB
         direction LR
         D1["<b>Charts</b><br/>chart-card · metrics-chart<br/>forecast-line-chart<br/>delta-bar-chart<br/>z-score-gauge"]
         D2["<b>Indicators</b><br/>kpi-card · risk-badge<br/>confidence-badge<br/>analysis-progress"]
-        D3["<b>Search</b><br/>ticker-search<br/>ticker-search_div<br/>company-symbol-search"]
+        D3["<b>Search</b><br/>company-search<br/>(CompanySearch · CompanyPicker<br/>CompanyCommandPalette)"]
         D4["<b>Data</b><br/>data-table"]
     end
 
@@ -1092,7 +1092,7 @@ Documented rather than hidden — each is a small, well-understood fix.
 | **TypeScript errors suppressed at build** | [`next.config.mjs`](next.config.mjs) — `typescript.ignoreBuildErrors: true` | Type regressions ship silently; the compiler is not a safety net right now | Set to `false` and clear the resulting errors |
 | **Image optimisation disabled** | [`next.config.mjs`](next.config.mjs) — `images.unoptimized: true` | Larger payloads than necessary | Re-enable once remote image hosts are configured |
 | **Two lockfiles** | `pnpm-lock.yaml` + `package-lock.json` | Installs can resolve differently depending on which manager a contributor uses | Pick one — `pnpm-lock.yaml` is the newer of the two — and delete the other |
-| **Duplicate ticker search** | `ticker-search.tsx` and `ticker-search_div.tsx` | Two near-identical components to keep in sync | Consolidate behind one component with a prop |
+| **Missing test peer dependency** | `@testing-library/react@16` requires `@testing-library/dom`, which is not in `devDependencies` | Every component test suite fails to collect on a clean install — `Cannot find module '@testing-library/dom'` | Add `@testing-library/dom@^10` to `devDependencies` |
 
 ---
 

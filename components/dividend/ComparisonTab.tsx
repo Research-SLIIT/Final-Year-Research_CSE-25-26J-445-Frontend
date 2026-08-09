@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { TickerSearchDIV } from "@/components/ticker-search_div"
+import { CompanyPicker } from "@/components/company-search"
 import { ComparisonSkeleton } from "@/components/dividend/PredictionDashboardSkeleton"
 import {
   BarChart,
@@ -63,21 +63,27 @@ export function ComparisonTab({
           <CardDescription>Select two different firms to compare their financial performance</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* The only two company pickers left in the app: a comparison genuinely
+              needs a second symbol that the route cannot supply. Both are scoped
+              to the firms that have dividend records, so neither can select a
+              company the comparison would 404 on. */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium mb-2 block">Firm 1</label>
-              <TickerSearchDIV 
-                onSelect={onSymbol1Change} 
-                placeholder="Select first firm..."
+              <CompanyPicker
+                module="dividend"
                 value={compareSymbol1}
+                onSelect={onSymbol1Change}
+                placeholder="Select first firm..."
               />
             </div>
             <div>
               <label className="text-sm font-medium mb-2 block">Firm 2</label>
-              <TickerSearchDIV 
-                onSelect={onSymbol2Change} 
-                placeholder="Select second firm..."
+              <CompanyPicker
+                module="dividend"
                 value={compareSymbol2}
+                onSelect={onSymbol2Change}
+                placeholder="Select second firm..."
               />
             </div>
           </div>

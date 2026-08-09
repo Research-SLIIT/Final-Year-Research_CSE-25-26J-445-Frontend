@@ -15,9 +15,10 @@ vi.mock("recharts", () => ({
   Legend: () => null,
 }));
 
-// Mock TickerSearchDIV
-vi.mock("@/components/ticker-search_div", () => ({
-  TickerSearchDIV: ({ onSelect, placeholder, value }: any) => (
+// Stub the shared company picker: it loads the directory over the network and
+// renders a popover, neither of which this tab's behaviour depends on.
+vi.mock("@/components/company-search", () => ({
+  CompanyPicker: ({ onSelect, placeholder, value }: any) => (
     <input
       data-testid={`ticker-${placeholder}`}
       placeholder={placeholder}

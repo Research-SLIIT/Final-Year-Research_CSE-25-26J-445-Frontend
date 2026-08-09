@@ -3,45 +3,40 @@
 import type React from "react"
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
-import { BarChart3, TrendingUp, PieChart, Settings, Menu, X, LogOut, LogIn, User, Newspaper, Banknote, PanelLeft } from "lucide-react"
+import { Settings, LogOut, LogIn, User, Newspaper, CreditCard } from "lucide-react"
+
 import { Button } from "@/components/ui/button"
 import { useAuthStore } from "@/stores/useAuthStore"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { CompanySearchTrigger } from "@/components/company-search"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
-const protectedNavigation = [
-  { name: "Dashboard", href: "/", icon: BarChart3, premium: false },
-  { name: "Risk Analysis", href: "/risk", icon: PieChart, premium: true },
-  { name: "Price Prediction", href: "/predict", icon: TrendingUp, premium: true },
-  { name: "Dividend", href: "/dividend", icon: Banknote, premium: true },
-  { name: "News", href: "/news", icon: Newspaper, premium: true },
-  { name: "Settings", href: "/settings", icon: Settings, premium: false },
-]
-
+/**
+ * Application shell.
+ *
+ * There is deliberately no navigation rail. Every analysis is a view of a
+ * company, so the way in is to search for one — the header carries the search
+ * affordance and nothing else. The dashboard is the only other destination and
+ * it is the root route; the remaining standalone pages (news, pricing, account)
+ * hang off the account menu and the dashboard's own entry points.
+ */
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const { user, isAuthenticated, loading, loadSession, refreshUser, signOut } = useAuthStore()
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [desktopCollapsed, setDesktopCollapsed] = useState(false)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     loadSession()
     refreshUser() // Check Latest status from backend on mount (e.g. after payment redirect)
-    const stored = localStorage.getItem("sidebar-collapsed")
-    if (stored !== null) {
-      setDesktopCollapsed(stored === "true")
-    }
     setMounted(true)
   }, [loadSession, refreshUser])
-
-  const toggleDesktopSidebar = () => {
-    const next = !desktopCollapsed
-    setDesktopCollapsed(next)
-    localStorage.setItem("sidebar-collapsed", String(next))
-  }
 
   useEffect(() => {
     if (!mounted || loading) return
@@ -72,112 +67,87 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     router.push("/auth/sign-in")
   }
 
-  // Show auth and admin pages without the main app sidebar
+  // Auth and admin pages render without the shell
   if (!mounted || loading || pathname.startsWith("/auth") || pathname.startsWith("/admin")) {
     return <>{children}</>
   }
 
+  // The dashboard owns a full-width hero search, so the header one would be a
+  // second search box on the same screen.
+  const showHeaderSearch = pathname !== "/"
+
   return (
-    <div className="flex h-screen bg-background">
-      {/* Mobile sidebar overlay */}
-      {sidebarOpen && (
-        <div className="fixed inset-0 z-30 bg-black/50 lg:hidden" onClick={() => setSidebarOpen(false)} />
-      )}
+    <div className="flex min-h-screen flex-col bg-background">
+      <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b border-border bg-card/95 px-4 backdrop-blur supports-backdrop-filter:bg-card/80 lg:px-8">
+        <Link href="/" className="shrink-0 text-lg font-bold text-foreground">
+          InvestWise
+        </Link>
 
-      {/* Sidebar */}
-      <aside
-        className={`fixed inset-y-0 left-0 z-40 bg-card border-r border-border overflow-hidden transform transition-all duration-300 ease-in-out lg:relative lg:translate-x-0 w-64 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
-          } ${desktopCollapsed ? "lg:w-0 lg:border-r-0" : "lg:w-64"}`}
-      >
-        <div className="w-64">
-          <div className="h-16 border-b border-border flex items-center px-6 gap-3">
-            {/* <Image src="/logoB.png" alt="Invest Wise Logo" width={32} height={32} className="rounded-md" /> */}
-            <h1 className="text-lg font-bold text-foreground">InvestWise</h1>
-          </div>
-          <nav className="px-4 py-4">
-            {protectedNavigation.map((item) => {
-              const Icon = item.icon
-              const isActive = pathname === item.href
-              return (
-                <Link key={item.href} href={item.href}>
-                  <Button
-                    variant={isActive ? "default" : "ghost"}
-                    className="w-full justify-start gap-2 mb-2 relative"
-                    onClick={() => setSidebarOpen(false)}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span>{item.name}</span>
-                  </Button>
-                </Link>
-              )
-            })}
-          </nav>
+        <div className="flex flex-1 justify-center px-2">
+          {showHeaderSearch && <CompanySearchTrigger className="w-full max-w-md" />}
         </div>
-      </aside>
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top bar */}
-        <header className="h-16 border-b border-border bg-card flex items-center justify-between px-6 lg:px-8">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden">
-              {sidebarOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="shrink-0 rounded-full">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+                {isAuthenticated && user?.displayName ? user.displayName.charAt(0).toUpperCase() : "G"}
+              </div>
             </Button>
-            <Button variant="ghost" size="icon" onClick={toggleDesktopSidebar} className="hidden lg:flex">
-              <PanelLeft className="h-4 w-4" />
-            </Button>
-            <h2 className="text-sm font-semibold text-muted-foreground">CSE Investment Platform</h2>
-          </div>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-full">
-                <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-semibold">
-                  {isAuthenticated && user?.displayName ? user.displayName.charAt(0).toUpperCase() : "G"}
-                </div>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              {isAuthenticated ? (
-                <>
-                  <DropdownMenuItem disabled className="flex-col items-start py-2">
-                    <p className="text-sm font-semibold">{user?.displayName}</p>
-                    <p className="text-xs text-muted-foreground">{user?.email}</p>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/profile" className="cursor-pointer">
-                      <User className="h-4 w-4 mr-2" />
-                      Profile
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/settings" className="cursor-pointer">
-                      <Settings className="h-4 w-4 mr-2" />
-                      Settings
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleLogout}>
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Logout
-                  </DropdownMenuItem>
-                </>
-              ) : (
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            {isAuthenticated ? (
+              <>
+                <DropdownMenuItem disabled className="flex-col items-start py-2">
+                  <p className="text-sm font-semibold">{user?.displayName}</p>
+                  <p className="text-xs text-muted-foreground">{user?.email}</p>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href="/auth/sign-in" className="cursor-pointer">
-                    <LogIn className="h-4 w-4 mr-2" />
-                    Sign In
+                  <Link href="/news" className="cursor-pointer">
+                    <Newspaper className="mr-2 h-4 w-4" />
+                    Market News
                   </Link>
                 </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </header>
+                <DropdownMenuItem asChild>
+                  <Link href="/pricing" className="cursor-pointer">
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    Pricing
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/profile" className="cursor-pointer">
+                    <User className="mr-2 h-4 w-4" />
+                    Profile
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/settings" className="cursor-pointer">
+                    <Settings className="mr-2 h-4 w-4" />
+                    Settings
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Logout
+                </DropdownMenuItem>
+              </>
+            ) : (
+              <DropdownMenuItem asChild>
+                <Link href="/auth/sign-in" className="cursor-pointer">
+                  <LogIn className="mr-2 h-4 w-4" />
+                  Sign In
+                </Link>
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </header>
 
-        {/* Page content */}
-        <main className="flex-1 overflow-auto bg-background">
-          <div className="p-4 lg:p-8">{children}</div>
-        </main>
-      </div>
+      <main className="flex-1">
+        <div className="p-4 lg:p-8">{children}</div>
+      </main>
     </div>
   )
 }

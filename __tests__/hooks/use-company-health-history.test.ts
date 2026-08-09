@@ -1,12 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useCompanyHealthHistory } from "@/hooks/use-company-health-history";
+import { invalidateCache } from "@/lib/request-cache";
 
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
 
 beforeEach(() => {
   mockFetch.mockReset();
+  // History is cached per company for the page session; the cases below reuse
+  // the same company code, so it has to be cleared between them.
+  invalidateCache();
 });
 
 function makeDataPoint(quarterDate: string, overrides: Record<string, string> = {}) {

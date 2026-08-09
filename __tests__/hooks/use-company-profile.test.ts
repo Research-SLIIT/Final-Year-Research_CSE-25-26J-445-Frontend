@@ -1,12 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useCompanyProfile } from "@/hooks/use-company-profile";
+import { invalidateCache } from "@/lib/request-cache";
 
 const mockFetch = vi.fn();
 
 beforeEach(() => {
   vi.stubGlobal("fetch", mockFetch);
   mockFetch.mockReset();
+  // Profiles are cached per company for the page session; the cases below reuse
+  // the same symbol, so it has to be cleared between them.
+  invalidateCache();
 });
 
 const mockApiResponse = {
@@ -152,5 +156,93 @@ describe("useCompanyProfile", () => {
     expect(result.current.data).toBeNull();
     expect(result.current.error).toBeNull();
     expect(result.current.loading).toBe(false);
+  });
+
+  // The profile sits above the tab strip, so a tab switch remounts it. These
+  // cover that it neither refetches nor blinks when that happens.
+  describe("caching across remounts", () => {
+    it("does not refetch when the component remounts for the same company", async () => {
+      mockFetch.mockResolvedValue({ ok: true, json: async () => mockApiResponse });
+
+      const first = renderHook(() => useCompanyProfile("AAF.N0000"));
+      await act(async () => {
+        await first.result.current.fetchProfile("AAF.N0000");
+      });
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+
+      first.unmount();
+
+      const second = renderHook(() => useCompanyProfile("AAF.N0000"));
+      await act(async () => {
+        await second.result.current.fetchProfile("AAF.N0000");
+      });
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it("has the cached profile on the very first render after a remount", async () => {
+      mockFetch.mockResolvedValue({ ok: true, json: async () => mockApiResponse });
+
+      const first = renderHook(() => useCompanyProfile("AAF.N0000"));
+      await act(async () => {
+        await first.result.current.fetchProfile("AAF.N0000");
+      });
+      first.unmount();
+
+      // No act(), no await — if this needed an effect to settle, the card would
+      // blink empty on every tab switch.
+      const second = renderHook(() => useCompanyProfile("AAF.N0000"));
+      expect(second.result.current.data?.summary?.name).toBe("AAF Limited");
+      expect(second.result.current.loading).toBe(false);
+    });
+
+    it("refetches when force is passed, so a manual refresh still works", async () => {
+      mockFetch.mockResolvedValue({ ok: true, json: async () => mockApiResponse });
+
+      const { result } = renderHook(() => useCompanyProfile("AAF.N0000"));
+      await act(async () => {
+        await result.current.fetchProfile("AAF.N0000");
+      });
+      await act(async () => {
+        await result.current.fetchProfile("AAF.N0000", { force: true });
+      });
+
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
+
+    it("does not show one company's profile while another has yet to load", async () => {
+      mockFetch.mockResolvedValue({ ok: true, json: async () => mockApiResponse });
+
+      const { result, rerender } = renderHook(
+        ({ symbol }) => useCompanyProfile(symbol),
+        { initialProps: { symbol: "AAF.N0000" } }
+      );
+      await act(async () => {
+        await result.current.fetchProfile("AAF.N0000");
+      });
+      expect(result.current.data?.summary?.name).toBe("AAF Limited");
+
+      rerender({ symbol: "CARG.N0000" });
+      expect(result.current.data).toBeNull();
+    });
+
+    it("does not cache a failure, so a retry reaches the network", async () => {
+      mockFetch.mockResolvedValueOnce({ ok: false, status: 500 });
+      mockFetch.mockResolvedValueOnce({ ok: true, json: async () => mockApiResponse });
+
+      const { result } = renderHook(() => useCompanyProfile("AAF.N0000"));
+
+      await act(async () => {
+        await result.current.fetchProfile("AAF.N0000");
+      });
+      expect(result.current.error).toContain("500");
+
+      await act(async () => {
+        await result.current.fetchProfile("AAF.N0000");
+      });
+
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+      expect(result.current.data?.summary?.name).toBe("AAF Limited");
+    });
   });
 });

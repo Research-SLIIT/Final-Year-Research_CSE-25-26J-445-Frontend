@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useReportHealthCheck } from "@/hooks/use-report-health-check";
+import { invalidateCache } from "@/lib/request-cache";
 
 function getLastInstance() {
   const MockES = EventSource as any;
@@ -9,6 +10,8 @@ function getLastInstance() {
 
 beforeEach(() => {
   (EventSource as any).mockClear();
+  // Health checks are cached per company for the page session.
+  invalidateCache();
 });
 
 describe("useReportHealthCheck", () => {

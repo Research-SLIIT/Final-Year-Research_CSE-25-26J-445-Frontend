@@ -2,26 +2,24 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { TickerSearchDIV } from "@/components/ticker-search_div"
 import PredictionDashboard from '@/components/dividend/PredictionDashboard'
 import { PredictionDashboardSkeleton } from '@/components/dividend/PredictionDashboardSkeleton'
 import { GlossaryMap } from "@/lib/types/dividend/glossary"
 
 interface DividendPredictionTabProps {
   loading: boolean
-  inputs: { symbol: string }
+  /** Firm code from the route — the tab no longer picks its own. */
+  symbol: string
   results: any
   glossary: GlossaryMap
-  onSearch: (company: any) => void
   onPredict: () => void
 }
 
 export function DividendPredictionTab({
   loading,
-  inputs,
+  symbol,
   results,
   glossary,
-  onSearch,
   onPredict,
 }: DividendPredictionTabProps) {
   return (
@@ -29,17 +27,14 @@ export function DividendPredictionTab({
       {/* Input Card */}
       <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle>Dividend Analysis Configuration</CardTitle>
-          <CardDescription>Select a stock to analyze dividend history and predictions</CardDescription>
+          <CardTitle>Dividend Analysis</CardTitle>
+          <CardDescription>
+            Omission risk for <span className="font-mono">{symbol}</span>, from its filed financial records
+          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <label className="text-sm font-medium mb-2 block">Stock Selection</label>
-            <TickerSearchDIV onSelect={onSearch} placeholder="Search for a stock..." value={inputs.symbol} />
-          </div>
-
-          <Button onClick={onPredict} disabled={!inputs.symbol || loading} className="w-full md:w-auto">
-            {loading ? "Analyzing Dividend..." : "Analyze Dividend"}
+        <CardContent>
+          <Button onClick={onPredict} disabled={!symbol || loading} className="w-full md:w-auto">
+            {loading ? "Analyzing Dividend..." : "Re-run analysis"}
           </Button>
         </CardContent>
       </Card>
@@ -50,14 +45,16 @@ export function DividendPredictionTab({
 
       {/* Results */}
       {!loading && results && (
-        <PredictionDashboard data={results.data} firm={inputs.symbol} year={2026} glossary={glossary} />
+        <PredictionDashboard data={results.data} firm={symbol} year={2026} glossary={glossary} />
       )}
 
       {/* Empty State */}
       {!results && !loading && (
         <Card className="bg-muted/30 border-dashed">
           <CardContent className="pt-12 pb-12 text-center">
-            <p className="text-muted-foreground">Select a stock and run the analysis to see dividend predictions</p>
+            <p className="text-muted-foreground">
+              No dividend prediction available for <span className="font-mono">{symbol}</span>
+            </p>
           </CardContent>
         </Card>
       )}

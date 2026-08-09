@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
@@ -158,7 +158,7 @@ export default function PredictionDashboard({ data, firm, year, glossary }: Pred
       {/* Header with Risk Band */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">{firm.toUpperCase()}</h1>
+          <h2 className="text-3xl font-bold text-foreground">{firm.toUpperCase()}</h2>
           <p className="text-muted-foreground mt-1">{year} Dividend Forecast</p>
         </div>
         <div className={`inline-flex items-center gap-3 px-4 py-3 rounded-lg border ${riskBand.color}`}>
@@ -182,7 +182,7 @@ export default function PredictionDashboard({ data, firm, year, glossary }: Pred
                   <p className="text-4xl font-bold text-foreground">{(probability * 100).toFixed(1)}%</p>
                 </div>
                 <Badge className="mb-2" variant="outline">
-                  {probability < 0.2 ? '✓ Very Safe' : probability < 0.5 ? '⚠ Moderate Risk' : probability < 0.7 ? '! High Risk' : '!! Very High Risk'}
+                  {probability < 0.2 ? 'âœ“ Very Safe' : probability < 0.5 ? 'âš  Moderate Risk' : probability < 0.7 ? '! High Risk' : '!! Very High Risk'}
                 </Badge>
               </div>
 

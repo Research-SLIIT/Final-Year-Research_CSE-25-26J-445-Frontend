@@ -2,7 +2,6 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { TickerSearchDIV } from "@/components/ticker-search_div"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { HistoricalDataSkeleton } from "@/components/dividend/PredictionDashboardSkeleton"
@@ -20,20 +19,19 @@ import { type HistoricalDividendData } from "@/lib/api/dividend_api"
 
 interface HistoricalDataTabProps {
   loading: boolean
-  inputs: { symbol: string }
+  /** Firm code from the route — the tab no longer picks its own. */
+  symbol: string
   historicalData: HistoricalDividendData | null
   selectedMetrics: Set<string>
-  onSearch: (company: any) => void
   onFetchData: () => void
   onMetricToggle: (metric: string) => void
 }
 
 export function HistoricalDataTab({
   loading,
-  inputs,
+  symbol,
   historicalData,
   selectedMetrics,
-  onSearch,
   onFetchData,
   onMetricToggle,
 }: HistoricalDataTabProps) {
@@ -43,23 +41,18 @@ export function HistoricalDataTab({
       <Card className="bg-card border-border">
         <CardHeader>
           <CardTitle>Historical Dividend Data</CardTitle>
-          <CardDescription>View historical dividend information and financial metrics for selected stocks</CardDescription>
+          <CardDescription>
+            Filed dividend and financial metrics for <span className="font-mono">{symbol}</span>
+          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-col gap-3">
-            <div>
-              <label className="text-sm font-medium mb-2 block">Stock Selection</label>
-              <TickerSearchDIV onSelect={onSearch} placeholder="Search for a stock..." value={inputs.symbol} />
-            </div>
-            
-            <Button 
-              onClick={onFetchData} 
-              disabled={!inputs.symbol || loading} 
-              className="w-full md:w-auto"
-            >
-              {loading ? "Loading Historical Data..." : "Fetch Historical Data"}
-            </Button>
-          </div>
+        <CardContent>
+          <Button
+            onClick={onFetchData}
+            disabled={!symbol || loading}
+            className="w-full md:w-auto"
+          >
+            {loading ? "Loading Historical Data..." : "Refresh data"}
+          </Button>
         </CardContent>
       </Card>
 

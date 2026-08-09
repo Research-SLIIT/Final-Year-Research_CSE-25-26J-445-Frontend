@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useAnalysisStream } from "@/hooks/use-analysis-stream";
+import { invalidateCache } from "@/lib/request-cache";
 
 // Helper to get the last MockEventSource instance
 function getLastInstance() {
@@ -10,6 +11,10 @@ function getLastInstance() {
 
 beforeEach(() => {
   (EventSource as any).mockClear();
+  // Completed streams are cached for the page session. Every case below streams
+  // the same URL, so without this the second one would replay the first's
+  // result instead of opening a connection.
+  invalidateCache();
 });
 
 describe("useAnalysisStream", () => {
@@ -191,6 +196,85 @@ describe("useAnalysisStream", () => {
     });
 
     expect(result.current.error).toBeNull();
+  });
+
+  // Progress UI is driven off `fromCache`: returning to a tab must not replay a
+  // finished pipeline in front of results the user already has.
+  describe("fromCache", () => {
+    const complete = (instance: any, result: unknown = { zone: "Safe" }) =>
+      instance.onmessage?.({
+        data: JSON.stringify({ step: 1, total: 1, message: "done", status: "completed", result }),
+      });
+
+    it("is false while a stream is actually running", async () => {
+      const { result } = renderHook(() => useAnalysisStream("http://test/stream"));
+
+      await act(async () => {
+        const p = result.current.start("http://test/stream");
+        complete(getLastInstance());
+        return p;
+      });
+
+      expect(result.current.fromCache).toBe(false);
+    });
+
+    it("is true on a remount that replays the cached stream", async () => {
+      const first = renderHook(() => useAnalysisStream("http://test/stream"));
+      await act(async () => {
+        const p = first.result.current.start("http://test/stream");
+        complete(getLastInstance());
+        return p;
+      });
+      first.unmount();
+
+      const instancesBefore = (EventSource as any).mock.instances.length;
+
+      // A tab switch: same URL, new mount. No connection, and the result is
+      // there on the first render.
+      const second = renderHook(() => useAnalysisStream("http://test/stream"));
+
+      expect(second.result.current.fromCache).toBe(true);
+      expect(second.result.current.result).toEqual({ zone: "Safe" });
+      expect(second.result.current.isLoading).toBe(false);
+
+      await act(async () => {
+        await second.result.current.start("http://test/stream");
+      });
+
+      expect(second.result.current.fromCache).toBe(true);
+      expect((EventSource as any).mock.instances).toHaveLength(instancesBefore);
+    });
+
+    it("is false again when a forced re-run bypasses the cache", async () => {
+      const { result } = renderHook(() => useAnalysisStream("http://test/stream"));
+      await act(async () => {
+        const p = result.current.start("http://test/stream");
+        complete(getLastInstance());
+        return p;
+      });
+
+      await act(async () => {
+        const p = result.current.start("http://test/stream", { force: true });
+        complete(getLastInstance());
+        return p;
+      });
+
+      // Re-running deliberately should show progress again.
+      expect(result.current.fromCache).toBe(false);
+    });
+
+    it("is false for a company that has not been streamed yet", async () => {
+      const first = renderHook(() => useAnalysisStream("http://test/stream/AAA"));
+      await act(async () => {
+        const p = first.result.current.start("http://test/stream/AAA");
+        complete(getLastInstance());
+        return p;
+      });
+
+      const other = renderHook(() => useAnalysisStream("http://test/stream/BBB"));
+      expect(other.result.current.fromCache).toBe(false);
+      expect(other.result.current.result).toBeNull();
+    });
   });
 
   it("resolves the returned promise when stream completes successfully", async () => {
