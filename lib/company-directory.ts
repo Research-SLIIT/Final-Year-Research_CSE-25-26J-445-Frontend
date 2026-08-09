@@ -20,6 +20,7 @@
 
 import { CSE_COMPANIES } from "@/data/cse-companies"
 import { fetchCompanies } from "@/lib/api/open-price-prediction.api"
+import { DEMO_MODE, loadDemoManifest } from "@/lib/demo/config"
 
 export interface ModuleSupport {
   risk: boolean
@@ -147,9 +148,56 @@ let inflight: Promise<DirectoryCompany[]> | null = null
  * backend. Cached for the page session; a failed fetch degrades to the static
  * baseline rather than emptying the search.
  */
+/**
+ * In demo mode the manifest is authoritative about what each company can
+ * answer. Building `modules` from the static lists instead would advertise a
+ * dividend tab for all 15 firms and a risk tab for all 281 CSE companies, when
+ * only the harvested subset has anything to show — every extra entry is a
+ * click that dead-ends. Companies with no captured output are dropped entirely.
+ */
+function loadDemoDirectory(): Promise<DirectoryCompany[]> {
+  return loadDemoManifest().then((manifest) => {
+    if (!manifest) return STATIC_DIRECTORY
+
+    const index = buildStaticIndex()
+    const directory: DirectoryCompany[] = []
+
+    for (const [symbol, support] of Object.entries(manifest.modules)) {
+      if (!support.predict && !support.dividend && !support.risk) continue
+
+      const known = index.get(symbol)
+      directory.push({
+        symbol,
+        cseSymbol: known?.cseSymbol ?? `${symbol}.N0000`,
+        // The static list carries the tidier names ("Cargills (Ceylon) PLC"
+        // over the exchange's "CARGILLS"), so prefer it where we have one.
+        name: known?.name ?? support.name,
+        sector: known?.sector,
+        modules: {
+          predict: support.predict,
+          dividend: support.dividend,
+          risk: support.risk,
+        },
+      })
+    }
+
+    cached = sortByName(directory)
+    return cached
+  })
+}
+
 export function loadDirectory(): Promise<DirectoryCompany[]> {
   if (cached) return Promise.resolve(cached)
   if (inflight) return inflight
+
+  if (DEMO_MODE) {
+    inflight = loadDemoDirectory()
+      .catch(() => STATIC_DIRECTORY)
+      .finally(() => {
+        inflight = null
+      })
+    return inflight
+  }
 
   inflight = fetchCompanies()
     .then((list) => {
@@ -174,8 +222,21 @@ export function loadDirectory(): Promise<DirectoryCompany[]> {
 }
 
 /**
+ * How many analyses a company can actually answer. Used to break ties in the
+ * search results: between two equally good text matches, the one that opens
+ * onto three working tabs is the more useful thing to offer.
+ */
+function moduleCount(company: DirectoryCompany): number {
+  return Number(company.modules.risk) + Number(company.modules.predict) + Number(company.modules.dividend)
+}
+
+/**
  * Rank matches so an exact ticker wins over a company whose name merely
  * contains the query — typing "HNB" should not bury HNB under "Ashen HNB…".
+ *
+ * Coverage is a tie-break, never an override: it reorders companies that match
+ * the query equally well, so a fully-covered company rises above a partially
+ * covered one without ever displacing the ticker the user actually typed.
  */
 export function filterDirectory(
   companies: DirectoryCompany[],
@@ -188,7 +249,17 @@ export function filterDirectory(
     const popular = POPULAR_SYMBOLS.map((symbol) =>
       companies.find((c) => c.symbol === symbol),
     ).filter((c): c is DirectoryCompany => Boolean(c))
-    return popular.length ? popular.slice(0, limit) : companies.slice(0, limit)
+
+    if (!popular.length) return companies.slice(0, limit)
+
+    // Nothing has been typed, so there is no relevance to preserve — lead with
+    // the companies that can demonstrate the most, keeping the curated order
+    // among equals.
+    return popular
+      .map((company, index) => ({ company, index }))
+      .sort((a, b) => moduleCount(b.company) - moduleCount(a.company) || a.index - b.index)
+      .slice(0, limit)
+      .map((entry) => entry.company)
   }
 
   const scored: Array<{ company: DirectoryCompany; score: number }> = []
@@ -208,7 +279,12 @@ export function filterDirectory(
   }
 
   return scored
-    .sort((a, b) => a.score - b.score || a.company.name.localeCompare(b.company.name))
+    .sort(
+      (a, b) =>
+        a.score - b.score ||
+        moduleCount(b.company) - moduleCount(a.company) ||
+        a.company.name.localeCompare(b.company.name),
+    )
     .slice(0, limit)
     .map((entry) => entry.company)
 }

@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { runRiskAnalysis, getOhlcvSnapshot, type OhlcvSnapshot } from "@/lib/fakeApi"
+import { DEMO_MODE } from "@/lib/demo/config"
+import { loadOhlcvSnapshot, loadRiskResult, type RiskProvenance } from "@/lib/demo/risk"
 import { useRiskStore } from "@/stores/useRiskStore"
 import { useFinancialHealth } from "@/hooks/use-financial-health"
 import { useCompanyHealthHistory } from "@/hooks/use-company-health-history"
@@ -97,6 +99,8 @@ export interface RiskWorkspaceProps {
 export function RiskWorkspace({ symbol, cseSymbol }: RiskWorkspaceProps) {
   const { inputs, results, loading, setInputs, setResults, setLoading } = useRiskStore()
   const [snapshot, setSnapshot] = useState<OhlcvSnapshot | null>(null)
+  /** How the market-risk statistics were derived — null when they are the mock. */
+  const [riskProvenance, setRiskProvenance] = useState<RiskProvenance | null>(null)
   const { toast } = useToast()
 
   // Each hook is handed the symbol it is meant to be showing, so a remount —
@@ -128,8 +132,38 @@ export function RiskWorkspace({ symbol, cseSymbol }: RiskWorkspaceProps) {
   } = useReportHealthCheck(cseSymbol)
 
   /**
-   * The three calls that make up a full risk read for one company.
+   * Price snapshot and market-risk statistics for one company.
+   *
+   * Kept off the critical path deliberately: a company with too little price
+   * history to compute a defensible VaR should still show its Z-score
+   * analysis, so a miss here leaves those cards unrendered rather than
+   * failing the whole tab.
+   */
+  const loadMarketRisk = useCallback(async (target: string) => {
+    if (!DEMO_MODE) return
+
+    try {
+      const [snap, stats] = await Promise.all([
+        loadOhlcvSnapshot(target),
+        loadRiskResult(target),
+      ])
+      setSnapshot(snap)
+      setResults(stats)
+      setRiskProvenance(stats.provenance ?? null)
+    } catch {
+      setRiskProvenance(null)
+    }
+  }, [setResults])
+
+  /**
+   * Everything that makes up a full risk read for one company.
    * `force` is what the Re-run button passes to go past the cache.
+   *
+   * The market-risk statistics are loaded here rather than being left to the
+   * Analyze button. They used to be the same six mock numbers for every
+   * company, so nothing was lost by hiding them behind a click; now that they
+   * are computed per company from real closing prices they belong on screen
+   * with the rest of the analysis the route already triggers.
    */
   const runAnalysis = useCallback(
     async ({ force = false }: { force?: boolean } = {}) => {
@@ -146,6 +180,7 @@ export function RiskWorkspace({ symbol, cseSymbol }: RiskWorkspaceProps) {
         fetchAnalysis(cseSymbol, { force }),
         fetchHistory(cseSymbol, { force }),
         fetchHealthCheck(cseSymbol, { force }),
+        loadMarketRisk(cseSymbol),
       ])
       // eslint-disable-next-line react-hooks/exhaustive-deps
     },
@@ -167,13 +202,20 @@ export function RiskWorkspace({ symbol, cseSymbol }: RiskWorkspaceProps) {
 
     setLoading(true)
     try {
-      // Get OHLCV snapshot
-      const snap = await getOhlcvSnapshot(inputs.symbol)
+      // Demo mode reads both from the harvested price history: the snapshot is
+      // the latest captured session, and the statistics were computed from the
+      // full series rather than being the one-size-fits-all mock the live path
+      // still returns.
+      const snap = DEMO_MODE
+        ? await loadOhlcvSnapshot(inputs.symbol)
+        : await getOhlcvSnapshot(inputs.symbol)
       setSnapshot(snap)
 
-      // Run risk analysis
-      const result = await runRiskAnalysis(inputs.symbol, inputs.dateRange, inputs.riskProfile)
+      const result = DEMO_MODE
+        ? await loadRiskResult(inputs.symbol)
+        : await runRiskAnalysis(inputs.symbol, inputs.dateRange, inputs.riskProfile)
       setResults(result)
+      setRiskProvenance((result as { provenance?: RiskProvenance }).provenance ?? null)
     } catch (error) {
       toast({ title: "Error", description: "Failed to run analysis", variant: "destructive" })
     } finally {
@@ -996,14 +1038,18 @@ export function RiskWorkspace({ symbol, cseSymbol }: RiskWorkspaceProps) {
             <KpiCard
               label="Value at Risk (95%)"
               value={`LKR ${results.riskMetrics.var95.toFixed(2)}`}
-              description="Maximum expected loss"
+              description="Worst 1-in-20 daily loss, per share"
             />
             <KpiCard
               label="Conditional VaR"
               value={`LKR ${results.riskMetrics.cvar.toFixed(2)}`}
-              description="Expected loss beyond VaR"
+              description="Mean loss beyond VaR, per share"
             />
-            <KpiCard label="Beta" value={results.riskMetrics.beta.toFixed(2)} description="Market correlation" />
+            <KpiCard
+              label="Beta"
+              value={results.riskMetrics.beta.toFixed(2)}
+              description={riskProvenance ? `Sensitivity to ${riskProvenance.betaBenchmark}` : "Market correlation"}
+            />
             <KpiCard
               label="Volatility (20D)"
               value={`${results.riskMetrics.volatility20d.toFixed(2)}%`}
@@ -1021,6 +1067,22 @@ export function RiskWorkspace({ symbol, cseSymbol }: RiskWorkspaceProps) {
               trend={{ value: Math.abs(results.riskMetrics.maxDrawdown), isPositive: false }}
             />
           </div>
+
+          {/* These six are statistics over real closing prices, not model
+              output — the Z-score gauge below is the model. Saying so keeps the
+              two from being read as the same kind of claim. */}
+          {riskProvenance && (
+            <p className="text-xs text-muted-foreground flex items-start gap-1.5">
+              <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <span>
+                Computed from {riskProvenance.sessions} sessions of CSE closing prices
+                ({riskProvenance.window.from} to {riskProvenance.window.to}). Beta measured against{" "}
+                {riskProvenance.betaBenchmark}; Sharpe uses a{" "}
+                {(riskProvenance.riskFreeRate * 100).toFixed(0)}% risk-free rate.
+                These are market statistics, not model predictions.
+              </span>
+            </p>
+          )}
 
           {/* Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

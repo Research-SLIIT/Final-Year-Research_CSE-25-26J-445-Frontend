@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button"
 import { apiClient } from "@/lib/api-client"
 import { Loader2 } from "lucide-react"
 import { useAuthStore } from "@/stores/useAuthStore"
+import { DEMO_MODE } from "@/lib/demo/config"
+import { useToast } from "@/hooks/use-toast"
 
 interface PayHereCheckoutData {
   merchant_id: string;
@@ -44,11 +46,24 @@ export function PayhereButton({
   const [checkoutData, setCheckoutData] = useState<PayHereCheckoutData | null>(null)
   const formRef = useRef<HTMLFormElement>(null)
   const { user } = useAuthStore()
+  const { toast } = useToast()
 
   const handleCheckout = async () => {
     try {
       if (!user?.id) {
         alert("You must be logged in to subscribe.")
+        return
+      }
+
+      // Checkout needs payment-service to sign the PayHere hash, and the demo
+      // account is already premium, so there is nothing to buy. Say so plainly
+      // instead of bouncing the visitor to a gateway that cannot complete.
+      if (DEMO_MODE) {
+        toast({
+          title: "Checkout is disabled in the demo",
+          description:
+            "Signing a PayHere order needs the payment service, which is not deployed here. The demo account already has premium access to every feature.",
+        })
         return
       }
 

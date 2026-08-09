@@ -56,11 +56,12 @@
 
 **Working with the code**
 9. [Quick Start](#-quick-start)
-10. [Design System](#-design-system)
-11. [Testing](#-testing)
-12. [Repository Layout](#-repository-layout)
-13. [Known Issues](#-known-issues)
-14. [Team](#-team)
+10. [Demo Mode](#-demo-mode)
+11. [Design System](#-design-system)
+12. [Testing](#-testing)
+13. [Repository Layout](#-repository-layout)
+14. [Known Issues](#-known-issues)
+15. [Team](#-team)
 
 </td></tr>
 </table>
@@ -869,6 +870,99 @@ flowchart LR
 
 ---
 
+## 🧊 Demo Mode
+
+The backend is a Kafka/Mongo/Postgres microservice stack with three Python ML
+services and two LLM integrations. Nothing free will host it. Demo mode runs the
+frontend on its own and replays **real output captured from that backend** —
+so the public demo shows genuine model results rather than invented numbers.
+
+```bash
+npm run demo:dev      # local, demo mode on
+npm run demo:build    # production build with NEXT_PUBLIC_DEMO_MODE=1
+```
+
+On a host like Vercel, set `NEXT_PUBLIC_DEMO_MODE=1` and deploy. No other
+configuration is needed — there is no backend to point at.
+
+### What is real, and how real
+
+| Surface | In demo mode |
+|---|---|
+| Indices, movers, sectors, prices, CSE news | **Live.** These never went through the backend — the `app/api/*` routes proxy `cse.lk` directly, in demo mode too. |
+| T+5 price forecast | Captured output of the LightGBM/XGBoost/CatBoost ensemble, with its real SHAP attributions. 274 companies. |
+| Dividend prediction | Captured output of the dividend-cut model plus its Gemini-written investor explanation. All 15 seeded firms. |
+| Financial health | Captured run of the full pipeline — latest CSE filing located, PDF parsed by Gemini, scored by the Altman Z-model, next-quarter Z-score from the SVR model. 15 companies. |
+| Risk statistics (VaR, CVaR, beta, Sharpe, drawdown) | **Computed, not captured.** No backend model produces these; they were previously the same six mock numbers for every company. Now derived from ~150 sessions of real CSE closing prices, beta against ASPI. Labelled as statistics rather than predictions in the UI. |
+| News sentiment | A curated set of captured analyses. See the caveat below. |
+| Auth, payments, admin | No service to talk to. The demo opens signed in as a premium account; checkout reports that it is unavailable. |
+
+### The sentiment caveat
+
+Sentiment is the only analysis driven by free text rather than a company symbol,
+so no capture can answer what a visitor types. The demo matches typed text to
+the nearest captured headline and says so on screen.
+
+More importantly, these were captured while the service was running its
+**financial-lexicon fallback** — the XGBoost classifier needs OpenAI embeddings,
+which were not configured. That fallback inverts a substantial share of
+headlines, so the stored set was filtered to candidates where it resolved the
+right company and agreed with the obvious reading (20 of 30 kept; the rejections
+and their reasons are in `public/demo-data/sentiment/index.json`).
+
+**That makes it a curated example set, not a measure of model accuracy**, and the
+UI says so. Configuring an OpenAI key on `sentiment-backend` and re-running the
+harvest would replace it with genuine classifier output.
+
+### Re-capturing
+
+Fixtures live in `public/demo-data/` and are committed. To refresh them, bring
+the full backend up (`docker compose --profile core --profile ml up`) and run:
+
+```bash
+npm run demo:harvest        # everything, in order
+npm run demo:harvest:news   # just the news corpus
+npm run demo:compute        # recompute risk statistics from captured prices
+npm run demo:manifest       # rebuild the coverage manifest
+```
+
+Every harvester is resumable — anything already on disk is skipped unless
+`FORCE=1` — which matters because the financial-health sweep costs about 40
+seconds and a Gemini call per company.
+
+### How it works
+
+Demo mode swaps the **transport**, never the contract. Each API module branches
+on `DEMO_MODE` at its lowest level, so components, stores, skeletons, caching and
+progress UI are untouched and behave identically in both modes.
+
+Two details make it feel like the real thing rather than a fixture dump:
+
+- **Latency is replayed, not faked.** Every fixture stores the latency its
+  original call took, and the loader honours it. A dividend lookup still returns
+  in milliseconds; a Gemini-backed health analysis still takes twenty seconds.
+- **The SSE stream is replayed frame by frame.** The financial-health pipeline
+  streams five steps of progress over ~21 seconds. The harvest records each
+  `data:` frame with the offset it arrived at, and `lib/demo/stream.ts` replays
+  them on the same clock — so the progress log a visitor watches is the log the
+  backend actually emitted.
+
+```
+lib/demo/
+├── config.ts      flag + coverage manifest
+├── fixtures.ts    fetch with captured-latency replay
+├── stream.ts      SSE frame replay
+├── sentiment.ts   free-text → nearest captured headline
+├── risk.ts        computed statistics + price snapshots
+├── news.ts        captured article corpus
+└── auth.ts        the demo account
+```
+
+Turning the flag off restores live backend calls with no other change. The real
+fetch code was never removed.
+
+---
+
 ## 🎨 Design System
 
 ### Component inventory
@@ -1093,6 +1187,9 @@ Documented rather than hidden — each is a small, well-understood fix.
 | **Image optimisation disabled** | [`next.config.mjs`](next.config.mjs) — `images.unoptimized: true` | Larger payloads than necessary | Re-enable once remote image hosts are configured |
 | **Two lockfiles** | `pnpm-lock.yaml` + `package-lock.json` | Installs can resolve differently depending on which manager a contributor uses | Pick one — `pnpm-lock.yaml` is the newer of the two — and delete the other |
 | **Missing test peer dependency** | `@testing-library/react@16` requires `@testing-library/dom`, which is not in `devDependencies` | Every component test suite fails to collect on a clean install — `Cannot find module '@testing-library/dom'` | Add `@testing-library/dom@^10` to `devDependencies` |
+| **Company health history always 404s** | Backend `GET /financial-health/company/:code/all` | Returns `Company with code 'jkh_n0000' not found` for every company tried, including ones analysed seconds earlier — the history collection is never populated. `useCompanyHealthHistory` falls back to its empty state, and demo mode has no fixture to replay. | Write each completed analysis into the history collection, or drop the endpoint and the hook |
+| **News corpus not captured** | `public/demo-data/news/corpus.json` | Not yet harvested, so `/news` in demo mode falls back to the bundled mock articles — the one fabricated surface left in the demo. | Bring the stack up and run `npm run demo:harvest:news` |
+| **Demo health coverage limited to 15 companies** | `public/demo-data/financial-health/` | The harvest stopped when the Gemini key ran out of prepayment credits (`429 … prepayment credits are depleted`). Ten curated companies were left uncaptured; five more (CBH, KTH, RAF, RF, TSH) have no CSE filing under their ticker and never will. | Top up Gemini credits and re-run `node scripts/demo/harvest-financial-health.mjs` — it resumes and skips what is already on disk |
 
 ---
 

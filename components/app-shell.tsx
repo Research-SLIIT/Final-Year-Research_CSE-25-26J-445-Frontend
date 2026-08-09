@@ -9,6 +9,7 @@ import { Settings, LogOut, LogIn, User, Newspaper, CreditCard } from "lucide-rea
 import { Button } from "@/components/ui/button"
 import { useAuthStore } from "@/stores/useAuthStore"
 import { CompanySearchTrigger } from "@/components/company-search"
+import { DemoBanner } from "@/components/demo/demo-banner"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -67,9 +68,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     router.push("/auth/sign-in")
   }
 
-  // Auth and admin pages render without the shell
+  // Auth and admin pages render without the shell — but the demo disclosure is
+  // not part of the shell's chrome, it is a statement about the whole site, so
+  // it stays on every route including these.
   if (!mounted || loading || pathname.startsWith("/auth") || pathname.startsWith("/admin")) {
-    return <>{children}</>
+    return (
+      <>
+        <DemoBanner />
+        {children}
+      </>
+    )
   }
 
   // The dashboard owns a full-width hero search, so the header one would be a
@@ -78,6 +86,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
+      {/* Above the header, and outside the sticky region — the disclosure
+          belongs at the top of the document, not pinned over the content. */}
+      <DemoBanner />
+
       <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b border-border bg-card/95 px-4 backdrop-blur supports-backdrop-filter:bg-card/80 lg:px-8">
         <Link href="/" className="shrink-0 text-lg font-bold text-foreground">
           InvestWise

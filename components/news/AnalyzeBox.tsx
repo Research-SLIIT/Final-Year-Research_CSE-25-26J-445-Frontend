@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { AnalysisBreakdown } from "@/components/analysis/AnalysisBreakdown"
 import { AnalysisDisclaimer } from "@/components/analysis/AnalysisDisclaimer"
 import { AITerminalStream } from "@/components/news/AITerminalStream"
+import { SentimentExamples } from "@/components/demo/sentiment-examples"
 import { ScoreBar } from "@/components/analysis/ScoreBar"
 import companiesData from "@/data/mock/companies.json"
 
@@ -113,6 +114,8 @@ export default function AnalyzeBox() {
           rows={6}
         />
 
+        <SentimentExamples onPick={setText} />
+
         <div className="flex justify-end">
           <Button onClick={handleAnalyze} disabled={loading || !text.trim()}>
             {loading ? "Analyzing..." : "Analyze News"}
@@ -131,6 +134,24 @@ export default function AnalyzeBox() {
 
         {analysis && !loading && (
           <div className="pt-4 border-t border-border space-y-4">
+            {/* Free text cannot be answered from a capture, so when the demo
+                falls back to the closest stored headline it has to say which
+                one — otherwise the result reads as an analysis of what was
+                actually typed. */}
+            {analysis.demoProvenance?.kind === "nearest" && (
+              <p className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs leading-relaxed">
+                Showing the closest captured headline, not an analysis of your text:{" "}
+                <em>&ldquo;{analysis.demoProvenance.matchedText}&rdquo;</em>
+              </p>
+            )}
+            {analysis.demoProvenance?.kind === "none" && (
+              <p className="rounded-md border border-border bg-muted/40 p-3 text-xs leading-relaxed text-muted-foreground">
+                No captured headline is close to this text, and the demo cannot run a fresh
+                analysis. This is the same response the backend returns when it recognises no
+                listed company.
+              </p>
+            )}
+
             {/* Analysis Breakdown Component */}
             {analysis.explanation && (
               <AnalysisBreakdown explanation={analysis.explanation} />

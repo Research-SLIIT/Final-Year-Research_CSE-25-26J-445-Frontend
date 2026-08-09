@@ -1,11 +1,18 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import Link from "next/link"
-import { ChevronRight, ExternalLink, Newspaper, WifiOff } from "lucide-react"
+import { ChevronRight, ExternalLink, Newspaper, Search, WifiOff } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
 
 export interface MarketNewsItem {
   id: string
@@ -27,6 +34,9 @@ const FILTERS = [
 ] as const
 
 type FilterKey = (typeof FILTERS)[number]["key"]
+
+/** The route caps `limit` at 40 — ask for all of it when the modal opens. */
+const FULL_LIMIT = 40
 
 /** "3h ago" / "Yesterday" / "12 Aug" — relative near-term, absolute beyond a week. */
 function timeAgo(iso: string | null): string {
@@ -110,6 +120,69 @@ function Thumb({
   )
 }
 
+/** Compact thumbnail + headline row, shared by the rail and the "See all" modal. */
+function StoryRow({ item, boxed = false }: { item: MarketNewsItem; boxed?: boolean }) {
+  return (
+    <a
+      href={item.url ?? "#"}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`flex gap-3 group ${
+        boxed
+          ? "rounded-lg border border-border/50 p-3 hover:border-blue-500/40 hover:bg-muted/30 transition-colors"
+          : "pb-3 border-b border-border/40 last:border-0 last:pb-0"
+      }`}
+    >
+      <Thumb item={item} className="w-24 h-16 rounded-md flex-shrink-0 border border-border/40" />
+      <div className="flex-1 min-w-0 space-y-1">
+        <p className="text-sm font-medium text-foreground leading-snug line-clamp-2 group-hover:text-blue-500 transition-colors">
+          {item.title}
+        </p>
+        {item.summary && (
+          <p className="text-xs text-muted-foreground leading-snug line-clamp-2">{item.summary}</p>
+        )}
+        <div className="flex items-center gap-2 pt-0.5">
+          <span
+            className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${categoryTone(item)}`}
+          >
+            {item.category}
+          </span>
+          <span className="text-[11px] text-muted-foreground">{item.source}</span>
+          <span className="text-[11px] text-muted-foreground/60">·</span>
+          <span className="text-[11px] text-muted-foreground/80">{timeAgo(item.publishedAt)}</span>
+          <ExternalLink className="h-3 w-3 text-muted-foreground/0 group-hover:text-muted-foreground/70 transition-colors ml-auto" />
+        </div>
+      </div>
+    </a>
+  )
+}
+
+function FilterPills({
+  value,
+  onChange,
+}: {
+  value: FilterKey
+  onChange: (key: FilterKey) => void
+}) {
+  return (
+    <div className="flex gap-0.5 rounded-md bg-muted/50 p-0.5">
+      {FILTERS.map((f) => (
+        <button
+          key={f.key}
+          onClick={() => onChange(f.key)}
+          className={`px-2 py-1 text-[10px] font-medium rounded transition-colors ${
+            value === f.key
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          {f.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function StorySkeleton({ lead = false }: { lead?: boolean }) {
   return (
     <div className={lead ? "space-y-3" : "flex gap-3"}>
@@ -127,6 +200,127 @@ function StorySkeleton({ lead = false }: { lead?: boolean }) {
   )
 }
 
+/**
+ * Full feed in a modal. The rail only loads `limit` stories, so this refetches
+ * at the route's ceiling on open rather than re-showing what is already visible.
+ */
+function AllNewsDialog({
+  open,
+  onOpenChange,
+  fallback,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  /** Stories the rail already has — shown while the fuller fetch is in flight. */
+  fallback: MarketNewsItem[]
+}) {
+  const [items, setItems] = useState<MarketNewsItem[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(false)
+  const [filter, setFilter] = useState<FilterKey>("all")
+  const [query, setQuery] = useState("")
+
+  useEffect(() => {
+    if (!open) return
+    let cancelled = false
+
+    setLoading(true)
+    setQuery("")
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/market-news?limit=${FULL_LIMIT}`)
+        if (!res.ok) throw new Error(`news ${res.status}`)
+        const data = await res.json()
+        if (!cancelled) {
+          setItems(data.items ?? [])
+          setError(false)
+        }
+      } catch {
+        if (!cancelled) setError(true)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [open])
+
+  // Keep the rail's copy on screen until the wider set lands, so the modal never
+  // opens empty.
+  const pool = items.length ? items : fallback
+
+  const visible = useMemo(() => {
+    const term = query.trim().toLowerCase()
+    return pool.filter((item) => {
+      if (filter !== "all" && item.sourceKind !== filter) return false
+      if (!term) return true
+      return (
+        item.title.toLowerCase().includes(term) ||
+        item.summary.toLowerCase().includes(term) ||
+        item.source.toLowerCase().includes(term)
+      )
+    })
+  }, [pool, filter, query])
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="flex max-h-[85vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl lg:max-w-5xl">
+        <DialogHeader className="shrink-0 space-y-3 border-b border-border/60 p-5 pb-4">
+          <div className="pr-8">
+            <DialogTitle className="flex items-center gap-1.5 text-base">
+              <Newspaper className="h-4 w-4 text-blue-500" /> All Market News
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              {loading && !pool.length
+                ? "Loading latest headlines…"
+                : `${visible.length} ${visible.length === 1 ? "story" : "stories"} · CSE filings + business press`}
+            </DialogDescription>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <FilterPills value={filter} onChange={setFilter} />
+            <div className="relative min-w-[10rem] flex-1">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search headlines, sources…"
+                className="h-8 pl-8 text-xs"
+              />
+            </div>
+          </div>
+        </DialogHeader>
+
+        <div className="scroll-pane min-h-0 flex-1 overflow-y-auto p-5">
+          {loading && !pool.length ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <StorySkeleton key={i} />
+              ))}
+            </div>
+          ) : visible.length === 0 ? (
+            <p className="py-12 text-center text-sm text-muted-foreground">
+              {error && !pool.length
+                ? "News sources are unreachable right now. They will retry automatically."
+                : query.trim()
+                  ? `No stories match “${query.trim()}”.`
+                  : "No stories in this category yet."}
+            </p>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {visible.map((item) => (
+                <StoryRow key={item.id} item={item} boxed />
+              ))}
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export function MarketNews({
   limit = 20,
   className = "",
@@ -139,6 +333,7 @@ export function MarketNews({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [filter, setFilter] = useState<FilterKey>("all")
+  const [showAll, setShowAll] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -203,30 +398,14 @@ export function MarketNews({
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="flex gap-0.5 rounded-md bg-muted/50 p-0.5">
-              {FILTERS.map((f) => (
-                <button
-                  key={f.key}
-                  onClick={() => setFilter(f.key)}
-                  className={`px-2 py-1 text-[10px] font-medium rounded transition-colors ${
-                    filter === f.key
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div>
+            <FilterPills value={filter} onChange={setFilter} />
             <Button
-              asChild
               variant="ghost"
               size="sm"
+              onClick={() => setShowAll(true)}
               className="gap-1 text-xs text-blue-500 hover:text-blue-600"
             >
-              <Link href="/news">
-                See all <ChevronRight className="h-3.5 w-3.5" />
-              </Link>
+              See all <ChevronRight className="h-3.5 w-3.5" />
             </Button>
           </div>
         </div>
@@ -288,48 +467,14 @@ export function MarketNews({
             {/* Remaining stories */}
             <div className="space-y-3">
               {rest.map((item) => (
-                <a
-                  key={item.id}
-                  href={item.url ?? "#"}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex gap-3 pb-3 border-b border-border/40 last:border-0 last:pb-0 group"
-                >
-                  <Thumb
-                    item={item}
-                    className="w-24 h-16 rounded-md flex-shrink-0 border border-border/40"
-                  />
-                  <div className="flex-1 min-w-0 space-y-1">
-                    <p className="text-sm font-medium text-foreground leading-snug line-clamp-2 group-hover:text-blue-500 transition-colors">
-                      {item.title}
-                    </p>
-                    {item.summary && (
-                      <p className="text-xs text-muted-foreground leading-snug line-clamp-2">
-                        {item.summary}
-                      </p>
-                    )}
-                    <div className="flex items-center gap-2 pt-0.5">
-                      <span
-                        className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${categoryTone(
-                          item
-                        )}`}
-                      >
-                        {item.category}
-                      </span>
-                      <span className="text-[11px] text-muted-foreground">{item.source}</span>
-                      <span className="text-[11px] text-muted-foreground/60">·</span>
-                      <span className="text-[11px] text-muted-foreground/80">
-                        {timeAgo(item.publishedAt)}
-                      </span>
-                      <ExternalLink className="h-3 w-3 text-muted-foreground/0 group-hover:text-muted-foreground/70 transition-colors ml-auto" />
-                    </div>
-                  </div>
-                </a>
+                <StoryRow key={item.id} item={item} />
               ))}
             </div>
           </>
         )}
       </CardContent>
+
+      <AllNewsDialog open={showAll} onOpenChange={setShowAll} fallback={items} />
     </Card>
   )
 }

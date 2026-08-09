@@ -4,6 +4,8 @@
  */
 
 import { CompanyHealthHistoryResponse } from '@/lib/types/company-health-history.types';
+import { DEMO_MODE } from '@/lib/demo/config';
+import { loadFixture } from '@/lib/demo/fixtures';
 
 // API base URL - can be configured via environment variable
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3400';
@@ -34,6 +36,15 @@ export async function getCompanyHealthHistory(companyCode: string): Promise<Comp
     const url = `${API_BASE_URL}/api/v1/financial-health/company/${encodedCode}/all`;
 
     try {
+        if (DEMO_MODE) {
+            // This endpoint 404s upstream for every company — the history
+            // collection is not populated — so there is nothing to replay.
+            // Failing the same way keeps the UI's existing empty state.
+            return await loadFixture<CompanyHealthHistoryResponse>(
+                'financial-health', 'history', `${companyCode.split('.')[0].toUpperCase()}.json`,
+            );
+        }
+
         const response = await fetch(url, {
             method: 'GET',
             headers: {

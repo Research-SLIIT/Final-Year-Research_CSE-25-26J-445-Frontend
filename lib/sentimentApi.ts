@@ -58,9 +58,66 @@ export interface AnalyzeResponse {
   }
 
   explanation?: ExplanationData
+
+  /**
+   * Demo mode only: how this result was resolved against the captured set.
+   * Absent when talking to a live backend.
+   */
+  demoProvenance?: DemoProvenance
 }
 
 // ================= HELPERS =================
+
+import { DEMO_MODE } from "@/lib/demo/config"
+import {
+  loadSentimentIndex,
+  loadStoredAnalysis,
+  matchHeadline,
+  NO_COMPANY_RESPONSE,
+} from "@/lib/demo/sentiment"
+
+/** How this demo response was arrived at — surfaced to the user by AnalyzeBox. */
+export type DemoProvenance =
+  | { kind: "exact" }
+  | { kind: "nearest"; matchedText: string; similarity: number }
+  | { kind: "none" }
+
+/**
+ * Resolve free text against the captured headline set.
+ *
+ * An exact example returns its genuine stored analysis. Anything else gets the
+ * closest stored headline, tagged so the UI can say which headline it is
+ * actually showing. When nothing is close, the backend's own "no listed company
+ * mentioned" answer is returned rather than a guess.
+ *
+ * The latency of the original call is replayed so the terminal-stream loading
+ * UI still has something to cover.
+ */
+async function analyzeFromFixtures(text: string): Promise<any> {
+  const startedAt = Date.now()
+  const index = await loadSentimentIndex()
+  const match = index ? matchHeadline(index, text) : null
+
+  let payload: any
+  let provenance: DemoProvenance
+
+  if (match) {
+    payload = await loadStoredAnalysis(match.headline.id)
+    provenance = match.exact
+      ? { kind: "exact" }
+      : { kind: "nearest", matchedText: match.headline.text, similarity: match.similarity }
+  } else {
+    payload = { ...NO_COMPANY_RESPONSE }
+    provenance = { kind: "none" }
+  }
+
+  // The captured calls returned in well under a second; the news page shows a
+  // scripted terminal log while it waits, so hold the floor long enough for it.
+  const elapsed = Date.now() - startedAt
+  if (elapsed < 1800) await new Promise((resolve) => setTimeout(resolve, 1800 - elapsed))
+
+  return { ...payload, __demoProvenance: provenance }
+}
 
 function buildExplanationFromRaw(raw: any): ExplanationData | undefined {
   if (!raw || !raw.explanation) return undefined
@@ -77,17 +134,24 @@ function buildExplanationFromRaw(raw: any): ExplanationData | undefined {
 // ================= API CALL =================
 
 export async function analyzeNews(text: string): Promise<AnalyzeResponse> {
-  const res = await fetch("http://127.0.0.1:3400/api/v1/sentiment/analyze", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text }),
-  })
+  let raw: any
 
-  if (!res.ok) {
-    throw new Error("Failed to analyze news")
+  if (DEMO_MODE) {
+    raw = await analyzeFromFixtures(text)
+  } else {
+    const res = await fetch("http://127.0.0.1:3400/api/v1/sentiment/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    })
+
+    if (!res.ok) {
+      throw new Error("Failed to analyze news")
+    }
+
+    raw = await res.json()
   }
 
-  const raw = await res.json()
   const explanation = buildExplanationFromRaw(raw)
 
   return {
@@ -138,5 +202,6 @@ export async function analyzeNews(text: string): Promise<AnalyzeResponse> {
       : undefined,
 
     explanation,
+    demoProvenance: raw.__demoProvenance,
   }
 }

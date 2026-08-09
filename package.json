@@ -9,7 +9,13 @@
     "start": "next start",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "demo:dev": "cross-env NEXT_PUBLIC_DEMO_MODE=1 next dev",
+    "demo:build": "cross-env NEXT_PUBLIC_DEMO_MODE=1 next build",
+    "demo:harvest": "node scripts/demo/harvest-open-price.mjs && node scripts/demo/harvest-history.mjs && node scripts/demo/harvest-dividend.mjs && node scripts/demo/harvest-financial-health.mjs && node scripts/demo/harvest-sentiment.mjs && npm run demo:harvest:news && npm run demo:compute && npm run demo:manifest",
+    "demo:harvest:news": "node scripts/demo/harvest-news.mjs",
+    "demo:compute": "node scripts/demo/compute-risk.mjs",
+    "demo:manifest": "node scripts/demo/build-manifest.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -78,6 +84,7 @@
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^4.7.0",
     "@vitest/coverage-v8": "^2.1.9",
+    "cross-env": "^10.1.0",
     "jsdom": "^24.1.3",
     "postcss": "^8.5",
     "tailwindcss": "^4.1.9",

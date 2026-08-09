@@ -5,6 +5,8 @@
 
 import { useCallback, useState } from 'react';
 import { cachedRequest, peekCache, type CacheOptions } from '@/lib/request-cache';
+import { DEMO_MODE } from '@/lib/demo/config';
+import { parseStreamUrl, replayDemoStream } from '@/lib/demo/stream';
 
 export type ProgressEvent = {
   step: number;
@@ -82,19 +84,15 @@ export function useAnalysisStream(streamUrl?: string): UseAnalysisStreamReturn {
   /** Opens the connection and resolves with everything worth caching. */
   const openStream = useCallback((url: string): Promise<StreamOutcome> => {
     return new Promise((resolve, reject) => {
-      const source = new EventSource(url);
       // Accumulated outside React state so the resolved value is complete even
       // if the component unmounts mid-stream — the next mount still gets it.
       const collected: ProgressEvent[] = [];
+      // Assigned before any frame can arrive — both transports hand back their
+      // handle synchronously and only ever emit on a later tick.
+      let transport: { close(): void } = { close() {} };
 
-      source.onmessage = (e) => {
-        let data: ProgressEvent;
-        try {
-          data = JSON.parse(e.data);
-        } catch {
-          return;
-        }
-
+      /** Shared by both transports: the frame-folding and completion rules. */
+      const handleEvent = (data: ProgressEvent) => {
         // If an in-progress placeholder already exists for this step, replace it
         const processingIdx = collected.findIndex(
           (event) => event.step === data.step && event.status === 'processing'
@@ -109,12 +107,37 @@ export function useAnalysisStream(streamUrl?: string): UseAnalysisStreamReturn {
         );
 
         if (data.status === 'completed') {
-          source.close();
+          transport.close();
           resolve({ events: [...collected], result: data.result ?? null });
         } else if (data.status === 'error') {
-          source.close();
+          transport.close();
           reject(new Error(data.message));
         }
+      };
+
+      // Demo mode swaps the transport, not the contract: the captured frames
+      // are replayed on their original clock, so everything above this line —
+      // progress UI, caching, error handling — behaves exactly as it does live.
+      const demoTarget = DEMO_MODE ? parseStreamUrl(url) : null;
+      if (demoTarget) {
+        transport = replayDemoStream(demoTarget.kind, demoTarget.symbol, {
+          onEvent: handleEvent,
+          onError: reject,
+        });
+        return;
+      }
+
+      const source = new EventSource(url);
+      transport = source;
+
+      source.onmessage = (e) => {
+        let data: ProgressEvent;
+        try {
+          data = JSON.parse(e.data);
+        } catch {
+          return;
+        }
+        handleEvent(data);
       };
 
       source.onerror = () => {

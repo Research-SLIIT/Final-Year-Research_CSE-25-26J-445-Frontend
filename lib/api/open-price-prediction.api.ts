@@ -9,6 +9,8 @@ import {
   PredictionResult,
 } from "@/lib/types/open-price-prediction.types";
 import { normalizeSymbol } from "@/lib/utils";
+import { DEMO_MODE } from "@/lib/demo/config";
+import { DemoFixtureMissing, loadFixture, loadFixtureOr } from "@/lib/demo/fixtures";
 
 // API base URL - configured via environment variable.
 // Must include the gateway's global prefix (/api/v1); the controller is mounted
@@ -23,6 +25,10 @@ export async function checkOpenPriceServiceHealth(): Promise<OpenPriceHealthChec
   const url = `${API_BASE_URL}/open-price/health`;
 
   try {
+    if (DEMO_MODE) {
+      return await loadFixture<OpenPriceHealthCheckResponse>("open-price", "health.json");
+    }
+
     const response = await fetch(url, {
       method: "GET",
       headers: {
@@ -159,13 +165,28 @@ export async function fetchOpenPriceHistory(
   const normalizedId = normalizeSymbol(companyId);
   const url = `${API_BASE_URL}/open-price/history?company_id=${encodeURIComponent(normalizedId)}&n_days=${nDays}`;
   try {
-    const response = await fetch(url, { method: "GET" });
-    if (!response.ok) return [];
-    const data = await response.json();
-    const rawHistory: Array<{
-      date: string; open_price: number; high_price: number; low_price: number;
-      close_price: number; trade_volume: number; share_volume: number; turnover: number;
-    }> = data.history ?? [];
+    interface RawHistory {
+      history?: Array<{
+        date: string; open_price: number; high_price: number; low_price: number;
+        close_price: number; trade_volume: number; share_volume: number; turnover: number;
+      }>;
+    }
+
+    let data: RawHistory;
+
+    if (DEMO_MODE) {
+      // Fixtures hold the widest window the service would return (~150
+      // sessions) because the risk statistics need it; the chart asks for far
+      // less. Slicing to the tail honours `nDays` from one stored series.
+      data = await loadFixtureOr<RawHistory>({ history: [] }, "open-price", "history", `${normalizedId}.json`);
+      data = { history: (data.history ?? []).slice(-nDays) };
+    } else {
+      const response = await fetch(url, { method: "GET" });
+      if (!response.ok) return [];
+      data = await response.json();
+    }
+
+    const rawHistory = data.history ?? [];
     return rawHistory.map((point) => {
       const dateObj = new Date(point.date + "T00:00:00"); // force local-time parse
       return {
@@ -192,6 +213,15 @@ export async function fetchCompanies(): Promise<
 > {
   const url = `${API_BASE_URL}/open-price/companies`;
   try {
+    if (DEMO_MODE) {
+      const data = await loadFixtureOr<{ companies?: Array<{ id: string; name: string }> }>(
+        { companies: [] },
+        "open-price",
+        "companies.json",
+      );
+      return data.companies ?? [];
+    }
+
     const response = await fetch(url, { method: "GET" });
     if (!response.ok) return [];
     const data = await response.json();
@@ -224,6 +254,24 @@ export async function predictOpenPrice(
   const url = `${API_BASE_URL}/open-price/predict?${params.toString()}`;
 
   try {
+    if (DEMO_MODE) {
+      try {
+        const captured = await loadFixture<OpenPricePredictionBackendResponse>(
+          "open-price",
+          "predict",
+          `${normalizedId}.json`,
+        );
+        return transformBackendResponse(captured);
+      } catch (error) {
+        // Same message the live path gives for an unsupported company, so the
+        // UI's not-found state is reached by the same route.
+        if (error instanceof DemoFixtureMissing) {
+          throw new Error(`Company ${companyId} not found in dataset`);
+        }
+        throw error;
+      }
+    }
+
     const response = await fetch(url, {
       method: "GET",
       headers: {

@@ -53,8 +53,16 @@ export interface DividendPredictionResult {
 }
 
 
+import { DEMO_MODE } from '@/lib/demo/config';
+import { DemoFixtureMissing, loadFixture } from '@/lib/demo/fixtures';
+
 // API base URL - can be configured via environment variable
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3400/api/v1/dividend-prediction/';
+
+/** "CARG.N0000" → "CARG". Fixtures are keyed by the short firm code. */
+function firmKey(symbol: string): string {
+  return symbol.split('.')[0].trim().toUpperCase();
+}
 
 export const predictDividend = async (
   symbol: string
@@ -79,7 +87,19 @@ export const llm_exp = async (
 // API function to fetch data from backend
 export const fetchDataFromBackend = async (symbol: string, year: number = 2025): Promise<DividendPredictionResult> => {
   try {
-    console.log("symbol", symbol);
+    if (DEMO_MODE) {
+      try {
+        return await loadFixture<DividendPredictionResult>('dividend', 'data', `${firmKey(symbol)}.json`);
+      } catch (error) {
+        // Only 15 firms are seeded into `financial_records`; anything else 404s
+        // live, and should surface the same way here.
+        if (error instanceof DemoFixtureMissing) {
+          throw new Error(`HTTP error! status: 404`);
+        }
+        throw error;
+      }
+    }
+
     const response = await fetch(`${API_BASE_URL}data?firm=${encodeURIComponent(symbol)}&year=${year}`, {
       method: 'GET',
       headers: {
@@ -103,6 +123,10 @@ export const fetchDataFromBackend = async (symbol: string, year: number = 2025):
 
 export const fetchDataFromBackend_llm = async (symbol: string, year: number = 2025): Promise<DividendPredictionResult> => {
   try {
+    if (DEMO_MODE) {
+      return await loadFixture<DividendPredictionResult>('dividend', 'llm', `${firmKey(symbol)}.json`);
+    }
+
     const url = `${API_BASE_URL}llm-explanation?firm=${encodeURIComponent(symbol)}&year=${year}`;
     const response = await fetch(url, {
       method: 'GET',
@@ -128,6 +152,11 @@ import { GlossaryMap } from '@/lib/types/dividend/glossary';
 
 export async function fetchGlossary(): Promise<GlossaryMap> {
   try {
+    if (DEMO_MODE) {
+      const captured = await loadFixture<{ status?: string; data?: GlossaryMap }>('dividend', 'glossary.json');
+      return captured?.data ?? {};
+    }
+
     const res = await fetch(`${API_BASE_URL}metadata/glossary`);
     const json = await res.json();
     
@@ -173,6 +202,15 @@ export interface HistoricalDividendData {
 
 export const fetchHistoricalDividendData = async (symbol: string): Promise<HistoricalDividendData> => {
   try {
+    if (DEMO_MODE) {
+      // The live path unwraps `data` before returning; the capture stored the
+      // response as received, so the same unwrap applies.
+      const captured = await loadFixture<{ data?: HistoricalDividendData } & HistoricalDividendData>(
+        'dividend', 'history', `${firmKey(symbol)}.json`,
+      );
+      return (captured.data ?? captured) as HistoricalDividendData;
+    }
+
     const response = await fetch(`${API_BASE_URL}history?firm=${encodeURIComponent(symbol)}`, {
       method: 'GET',
       headers: {

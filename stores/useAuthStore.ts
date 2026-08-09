@@ -1,5 +1,7 @@
 import { create } from "zustand"
 import { apiClient, ApiError } from "@/lib/api-client"
+import { DEMO_MODE } from "@/lib/demo/config"
+import { DEMO_TOKEN, DEMO_USER } from "@/lib/demo/auth"
 
 export interface User {
   id: string
@@ -38,6 +40,13 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
   signIn: async (email: string, password: string) => {
     set({ loading: true, error: null })
+    // Reachable if someone navigates straight to /auth/sign-in in the demo.
+    // Accept and drop them into the demo account rather than failing against
+    // an auth-service that is not deployed.
+    if (DEMO_MODE) {
+      set({ user: DEMO_USER, token: DEMO_TOKEN, isAuthenticated: true, loading: false })
+      return
+    }
     try {
       const response = await apiClient<{ user: User; token: string }>("/auth/login", {
         method: "POST",
@@ -63,6 +72,15 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
   signUp: async (name: string, email: string, password: string) => {
     set({ loading: true, error: null })
+    if (DEMO_MODE) {
+      set({
+        user: { ...DEMO_USER, name, displayName: name, email },
+        token: DEMO_TOKEN,
+        isAuthenticated: true,
+        loading: false,
+      })
+      return
+    }
     try {
       const response = await apiClient<{ user: User; token: string }>("/auth/register", {
         method: "POST",
@@ -87,6 +105,13 @@ export const useAuthStore = create<AuthStore>((set) => ({
   },
 
   signOut: () => {
+    // Signing out of a demo that signs itself back in on the next load would
+    // just look broken, so this returns to the demo account instead.
+    if (DEMO_MODE) {
+      set({ user: DEMO_USER, token: DEMO_TOKEN, isAuthenticated: true, loading: false, error: null })
+      return
+    }
+
     localStorage.removeItem(STORAGE_KEY)
     localStorage.removeItem(USER_STORAGE_KEY)
     set({
@@ -99,6 +124,18 @@ export const useAuthStore = create<AuthStore>((set) => ({
   },
 
   loadSession: () => {
+    // No auth-service to sign in against, so the demo opens already signed in
+    // as a premium account and every feature is one click away.
+    if (DEMO_MODE) {
+      set({
+        user: DEMO_USER,
+        token: DEMO_TOKEN,
+        isAuthenticated: true,
+        loading: false,
+      })
+      return
+    }
+
     try {
       const token = localStorage.getItem(STORAGE_KEY)
       const userJson = localStorage.getItem(USER_STORAGE_KEY)
@@ -119,6 +156,10 @@ export const useAuthStore = create<AuthStore>((set) => ({
   },
 
   refreshUser: async () => {
+    // Nothing to refresh against, and letting this fall through would 401 the
+    // demo account straight back out to the login wall.
+    if (DEMO_MODE) return
+
     try {
       const token = localStorage.getItem(STORAGE_KEY)
       if (!token) return
@@ -142,6 +183,15 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
   updateProfile: async (displayName: string, bio: string) => {
     set({ loading: true, error: null })
+    // Edits apply for the session so the profile screen is not read-only, but
+    // there is no user-service to persist them to.
+    if (DEMO_MODE) {
+      set((state) => ({
+        user: state.user ? { ...state.user, displayName, bio } : { ...DEMO_USER, displayName, bio },
+        loading: false,
+      }))
+      return
+    }
     try {
       const updatedUser = await apiClient<User>("/user/profile", {
         method: "PUT",

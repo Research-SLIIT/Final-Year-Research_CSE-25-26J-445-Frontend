@@ -1,3 +1,5 @@
+import { DEMO_MODE } from "@/lib/demo/config";
+import { demoNewsById, demoNewsList, demoNewsTags } from "@/lib/demo/news";
 import companiesData from "@/data/mock/companies.json";
 import watchlistData from "@/data/mock/watchlist.json";
 import ohlcvData from "@/data/mock/ohlcv_snapshot.json";
@@ -316,6 +318,14 @@ export const newsList = async (
   tag?: string,
   sort?: string
 ): Promise<NewsArticle[]> => {
+  // Demo mode serves the captured corpus alone. Falling through would both
+  // reach for a backend that is not deployed and pad the list with the mock
+  // articles, which is exactly the fabricated data the demo exists to avoid.
+  if (DEMO_MODE) {
+    const captured = await demoNewsList(query, tag, sort);
+    if (captured) return captured as unknown as NewsArticle[];
+  }
+
   // 1. Get mock articles
   await delay(100);
   let mockArticles = [...(newsData as any).news] as NewsArticle[];
@@ -323,6 +333,7 @@ export const newsList = async (
   // 2. Try to get real articles from the backend
   let realArticles: NewsArticle[] = [];
   try {
+    if (DEMO_MODE) throw new Error('demo mode: no backend');
     const params = new URLSearchParams();
     if (query) params.set("query", query);
     if (tag) params.set("tag", tag);
@@ -392,8 +403,14 @@ export const newsList = async (
 };
 
 export const newsGetById = async (id: string): Promise<NewsArticle | null> => {
+  if (DEMO_MODE) {
+    const captured = await demoNewsById(id);
+    if (captured) return captured as unknown as NewsArticle;
+  }
+
   // Try backend first
   try {
+    if (DEMO_MODE) throw new Error('demo mode: no backend');
     const url = `${BACKEND_URL}/articles/${id}`;
     console.log("[News API] Fetching article by ID from:", url);
     const res = await fetch(url);
@@ -417,6 +434,11 @@ export const newsGetById = async (id: string): Promise<NewsArticle | null> => {
 };
 
 export const newsGetAllTags = async (): Promise<string[]> => {
+  if (DEMO_MODE) {
+    const captured = await demoNewsTags();
+    if (captured) return captured;
+  }
+
   const tagsSet = new Set<string>();
 
   // Get mock tags
@@ -426,6 +448,7 @@ export const newsGetAllTags = async (): Promise<string[]> => {
 
   // Try to merge real tags from backend
   try {
+    if (DEMO_MODE) throw new Error('demo mode: no backend');
     const url = `${BACKEND_URL}/articles/tags`;
     console.log("[News API] Fetching tags from:", url);
     const res = await fetch(url);
