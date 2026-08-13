@@ -68,16 +68,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     router.push("/auth/sign-in")
   }
 
-  // Auth and admin pages render without the shell — but the demo disclosure is
-  // not part of the shell's chrome, it is a statement about the whole site, so
-  // it stays on every route including these.
+  // Auth and admin pages render without the shell. The demo disclosure has
+  // nothing to say here either — it only speaks for the company workspace.
   if (!mounted || loading || pathname.startsWith("/auth") || pathname.startsWith("/admin")) {
-    return (
-      <>
-        <DemoBanner />
-        {children}
-      </>
-    )
+    return <>{children}</>
   }
 
   // The dashboard owns a full-width hero search, so the header one would be a
@@ -87,7 +81,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col bg-background">
       {/* Above the header, and outside the sticky region — the disclosure
-          belongs at the top of the document, not pinned over the content. */}
+          belongs at the top of the document, not pinned over the content.
+          It renders itself only on the company workspace. */}
       <DemoBanner />
 
       <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b border-border bg-card/95 px-4 backdrop-blur supports-backdrop-filter:bg-card/80 lg:px-8">

@@ -13,22 +13,33 @@
  * notice that is absent for most of the visit — someone who lands on a
  * forecast three pages in would have no way to know the numbers were
  * pre-computed. Only the details panel collapses.
+ *
+ * It is scoped to the company workspace, because that is the only route that
+ * renders captured model output. The dashboard, news and account pages show
+ * live Colombo Stock Exchange data, and claiming those numbers are
+ * pre-computed would be its own kind of inaccuracy. (/risk, /predict and
+ * /dividend only redirect into the workspace, so they need no notice of their
+ * own.)
  */
 
 import { useEffect, useState } from "react"
+import { usePathname } from "next/navigation"
 import { Info } from "lucide-react"
 import { DEMO_MODE, loadDemoManifest, type DemoManifest } from "@/lib/demo/config"
 
 export function DemoBanner() {
+  const pathname = usePathname()
   const [manifest, setManifest] = useState<DemoManifest | null>(null)
   const [expanded, setExpanded] = useState(false)
 
-  useEffect(() => {
-    if (!DEMO_MODE) return
-    loadDemoManifest().then(setManifest)
-  }, [])
+  const onCompanyPage = pathname?.startsWith("/company/") ?? false
 
-  if (!DEMO_MODE) return null
+  useEffect(() => {
+    if (!DEMO_MODE || !onCompanyPage) return
+    loadDemoManifest().then(setManifest)
+  }, [onCompanyPage])
+
+  if (!DEMO_MODE || !onCompanyPage) return null
 
   const rows: Array<{ label: string; text: string | null }> = manifest
     ? [

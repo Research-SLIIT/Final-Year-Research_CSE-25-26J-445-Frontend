@@ -35,8 +35,15 @@ interface CapturedStream {
  * Replaying a twenty-second capture faithfully is right for a first visit and
  * tedious on the fifth. This compresses the timeline without flattening it:
  * the steps still arrive in order, spaced proportionally, just faster.
+ *
+ * The captures run 18–31s, and almost all of that is a single gap — the LLM
+ * parse in step 3 — so at the original pace a visitor watches one spinner for
+ * twenty seconds and learns nothing more than they did at second three. 8×
+ * brings a run to roughly four seconds: long enough to read the steps as they
+ * land, short enough to sit through twice. Set
+ * NEXT_PUBLIC_DEMO_STREAM_SPEED=1 to watch the pipeline at its true pace.
  */
-const REPLAY_SPEED = Number(process.env.NEXT_PUBLIC_DEMO_STREAM_SPEED || 1);
+const REPLAY_SPEED = Number(process.env.NEXT_PUBLIC_DEMO_STREAM_SPEED || 8);
 
 /** Never let compression collapse two steps into the same frame. */
 const MIN_GAP_MS = 120;

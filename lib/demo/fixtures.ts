@@ -30,6 +30,18 @@ export class DemoFixtureMissing extends Error {
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
+ * Ceiling on replayed latency.
+ *
+ * Honouring the capture exactly is right up to a point, and the dividend LLM
+ * explanation is past it — twelve seconds of spinner shows nothing the first
+ * two seconds did not. A cap rather than a divisor keeps the texture that
+ * makes replayed latency worth having: the sub-second calls still return
+ * sub-second, so the demo stays honest about which work is cheap and which is
+ * expensive. Set NEXT_PUBLIC_DEMO_MAX_LATENCY_MS=0 to replay uncapped.
+ */
+const MAX_LATENCY_MS = Number(process.env.NEXT_PUBLIC_DEMO_MAX_LATENCY_MS ?? 2500);
+
+/**
  * Fixture paths are lowercased on both sides of the wire.
  *
  * The harvest writes `jkh.json`; a lookup for `JKH` would resolve on a
@@ -47,7 +59,8 @@ function fixtureUrl(segments: string[]): string {
  * that already exceeded it adds nothing.
  */
 async function pace<T>(startedAt: number, latencyMs: number, value: T): Promise<T> {
-  const remaining = latencyMs - (Date.now() - startedAt);
+  const target = MAX_LATENCY_MS > 0 ? Math.min(latencyMs, MAX_LATENCY_MS) : latencyMs;
+  const remaining = target - (Date.now() - startedAt);
   if (remaining > 0) await sleep(remaining);
   return value;
 }

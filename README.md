@@ -939,13 +939,17 @@ progress UI are untouched and behave identically in both modes.
 Two details make it feel like the real thing rather than a fixture dump:
 
 - **Latency is replayed, not faked.** Every fixture stores the latency its
-  original call took, and the loader honours it. A dividend lookup still returns
-  in milliseconds; a Gemini-backed health analysis still takes twenty seconds.
+  original call took, and the loader honours it up to a 2.5s ceiling. A dividend
+  lookup still returns in milliseconds and an LLM-backed one still makes you
+  wait — the relative cost of each call survives, only the long tail is clipped.
+  `NEXT_PUBLIC_DEMO_MAX_LATENCY_MS=0` replays uncapped.
 - **The SSE stream is replayed frame by frame.** The financial-health pipeline
-  streams five steps of progress over ~21 seconds. The harvest records each
+  streams five steps of progress over 18–31 seconds. The harvest records each
   `data:` frame with the offset it arrived at, and `lib/demo/stream.ts` replays
-  them on the same clock — so the progress log a visitor watches is the log the
-  backend actually emitted.
+  them in order, spaced proportionally but compressed 8× to about four seconds —
+  so the progress log a visitor watches is the log the backend actually emitted,
+  minus the twenty-second stare at the LLM parse step.
+  `NEXT_PUBLIC_DEMO_STREAM_SPEED=1` replays at true pace.
 
 ```
 lib/demo/
