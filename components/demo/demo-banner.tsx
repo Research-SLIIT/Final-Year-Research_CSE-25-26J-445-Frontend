@@ -24,7 +24,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { usePathname } from "next/navigation"
-import { Info } from "lucide-react"
+import { ChevronDown, ChevronUp, Info } from "lucide-react"
 import { DEMO_MODE, loadDemoManifest, type DemoManifest } from "@/lib/demo/config"
 
 const MODEL_DETAILS = [
@@ -54,6 +54,7 @@ export function DemoBanner() {
   const pathname = usePathname()
   const [manifest, setManifest] = useState<DemoManifest | null>(null)
   const [expanded, setExpanded] = useState(false)
+  const [showModelDetails, setShowModelDetails] = useState(false)
   const bannerRef = useRef<HTMLDivElement>(null)
 
   const onCompanyPage = pathname?.startsWith("/company/") ?? false
@@ -69,12 +70,14 @@ export function DemoBanner() {
     const handleClickOutside = (event: MouseEvent | TouchEvent) => {
       if (bannerRef.current && !bannerRef.current.contains(event.target as Node)) {
         setExpanded(false)
+        setShowModelDetails(false)
       }
     }
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setExpanded(false)
+        setShowModelDetails(false)
       }
     }
 
@@ -94,7 +97,7 @@ export function DemoBanner() {
   return (
     <div
       ref={bannerRef}
-      className="border-b border-amber-500/30 bg-amber-500/10 text-amber-950 dark:text-amber-100"
+      className="border-b border-amber-500/30 bg-amber-500/10 text-amber-950 dark:text-amber-100 transition-all duration-200"
     >
       <div className="mx-auto flex max-w-7xl items-start gap-2.5 px-4 py-2 text-sm">
         <Info className="mt-0.5 h-4 w-4 shrink-0" />
@@ -120,40 +123,49 @@ export function DemoBanner() {
                 </p>
                 <button
                   type="button"
-                  onClick={() => setExpanded(false)}
+                  onClick={() => {
+                    setExpanded(false)
+                    setShowModelDetails(false)
+                  }}
                   className="shrink-0 font-medium underline underline-offset-2 hover:no-underline text-xs sm:text-sm"
                 >
                   Hide details
                 </button>
               </div>
 
-              <div className="border-t border-amber-500/25 pt-2.5 space-y-2">
-                <div>
-                  <h4 className="font-semibold text-xs uppercase tracking-wider text-amber-900/90 dark:text-amber-200/90">
-                    Data and model details
-                  </h4>
-                  <p className="text-xs opacity-75 mt-0.5">
-                    Collapsed by default; expand for the technical details.
-                  </p>
-                </div>
-
-                <dl className="space-y-2 text-xs sm:text-sm">
-                  {MODEL_DETAILS.map((row) => (
-                    <div key={row.label} className="sm:flex sm:gap-3">
-                      <dt className="font-medium sm:w-36 sm:shrink-0 text-amber-950 dark:text-amber-100">
-                        {row.label}
-                      </dt>
-                      <dd className="opacity-90 leading-relaxed">{row.text}</dd>
-                    </div>
-                  ))}
-                </dl>
-
-                {manifest?.counts && (
-                  <div className="pt-2 text-xs opacity-75 border-t border-amber-500/15">
-                    Captured dataset coverage: {manifest.counts.predict} price ensemble models · {manifest.counts.dividend} dividend evaluations · {manifest.counts.health} filing pipelines · {manifest.counts.sentiment} curated sentiment cases.
-                  </div>
-                )}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setShowModelDetails((prev) => !prev)}
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-950 dark:text-amber-100 bg-amber-500/15 hover:bg-amber-500/25 px-2.5 py-1 rounded transition-colors"
+                >
+                  <span>Data and model details</span>
+                  {showModelDetails ? (
+                    <ChevronUp className="h-3.5 w-3.5" />
+                  ) : (
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  )}
+                </button>
               </div>
+
+              {showModelDetails && (
+                <div className="border-t border-amber-500/25 pt-2.5 space-y-2.5 animate-in fade-in-50 duration-150">
+                  <dl className="space-y-2 text-xs sm:text-sm">
+                    {MODEL_DETAILS.map((row) => (
+                      <div key={row.label} className="sm:flex sm:gap-3">
+                        <dt className="font-medium sm:w-36 sm:shrink-0 text-amber-950 dark:text-amber-100">
+                          {row.label}
+                        </dt>
+                        <dd className="opacity-90 leading-relaxed">{row.text}</dd>
+                      </div>
+                    ))}
+                  </dl>
+
+                  <div className="pt-2 text-xs opacity-75 border-t border-amber-500/15">
+                    Captured dataset coverage: {manifest?.counts?.predict ?? 274} price ensemble models · {manifest?.counts?.dividend ?? 15} dividend evaluations · {manifest?.counts?.health ?? 15} filing pipelines · {manifest?.counts?.sentiment ?? 20} curated sentiment cases.
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
