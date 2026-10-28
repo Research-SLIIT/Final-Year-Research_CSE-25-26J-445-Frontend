@@ -55,7 +55,15 @@ export async function csePost<T>(endpoint: string): Promise<T> {
     cache: 'no-store',
   });
   if (!res.ok) throw new Error(`CSE ${endpoint} returned ${res.status}`);
-  return res.json() as Promise<T>;
+  if (res.status === 204) return null as T;
+  const text = await res.text();
+  if (!text || !text.trim()) return null as T;
+  try {
+    return JSON.parse(text) as T;
+  } catch (err) {
+    console.warn(`[cse] Failed to parse JSON from ${endpoint}:`, err);
+    return null as T;
+  }
 }
 
 /** GET a CSE endpoint (only /news/web works this way). */
@@ -66,7 +74,15 @@ export async function cseGet<T>(path: string): Promise<T> {
     cache: 'no-store',
   });
   if (!res.ok) throw new Error(`CSE ${path} returned ${res.status}`);
-  return res.json() as Promise<T>;
+  if (res.status === 204) return null as T;
+  const text = await res.text();
+  if (!text || !text.trim()) return null as T;
+  try {
+    return JSON.parse(text) as T;
+  } catch (err) {
+    console.warn(`[cse] Failed to parse JSON from ${path}:`, err);
+    return null as T;
+  }
 }
 
 /** CSE index/sector chart series. `chartId` is the sectorId (1 = ASPI, 40 = S&P SL20). */

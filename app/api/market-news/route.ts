@@ -68,18 +68,57 @@ async function fetchCseNews(type: 'CN' | 'BN', count: number): Promise<MarketNew
 
 // ─── Sri Lankan business press ────────────────────────────────────────────────
 
+// ─── Sri Lankan business press ────────────────────────────────────────────────
+
 // Business/economy desks only — general news wires drown the page in stories
 // that have nothing to do with the market.
 const FEEDS = [
-  { name: 'Ada Derana Biz', url: 'https://bizenglish.adaderana.lk/feed/', category: 'Business' },
+  { name: 'Daily FT', url: 'https://www.ft.lk/rss/Business/26', category: 'Business' },
   { name: 'EconomyNext', url: 'https://economynext.com/feed/', category: 'Economy' },
   {
     name: 'Lanka Business Online',
     url: 'https://www.lankabusinessonline.com/feed/',
     category: 'Business',
   },
-  { name: 'Daily FT', url: 'https://www.ft.lk/rss/Business/26', category: 'Business' },
+  { name: 'Daily FT Markets', url: 'https://www.ft.lk/rss/front-page/44', category: 'Economy' },
 ];
+
+const ogImageCache = new Map<string, string | null>();
+
+async function resolveOgImage(url: string | null): Promise<string | null> {
+  if (!url) return null;
+  if (ogImageCache.has(url)) return ogImageCache.get(url)!;
+
+  try {
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      },
+      signal: AbortSignal.timeout(3500),
+    });
+    if (!res.ok) {
+      ogImageCache.set(url, null);
+      return null;
+    }
+    const html = await res.text();
+    const match =
+      html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i) ||
+      html.match(/<meta\s+content=["']([^"']+)["']\s+property=["']og:image["']/i) ||
+      html.match(/<meta\s+name=["']twitter:image["']\s+content=["']([^"']+)["']/i);
+
+    let img = match ? match[1].trim() : null;
+    if (img && img.startsWith('http://')) {
+      img = img.replace(/^http:\/\//i, 'https://');
+    }
+    ogImageCache.set(url, img);
+    return img;
+  } catch {
+    ogImageCache.set(url, null);
+    return null;
+  }
+}
 
 async function fetchFeed(feed: (typeof FEEDS)[number]): Promise<MarketNewsItem[]> {
   const res = await fetch(feed.url, {
@@ -154,7 +193,16 @@ export async function GET(request: Request) {
         return true;
       });
 
-      return unique.sort(byRecency);
+      // Enrich stories missing images by fetching og:image from the article page
+      const enriched = await Promise.all(
+        unique.map(async (item) => {
+          if (item.image) return item;
+          const ogImg = await resolveOgImage(item.url);
+          return ogImg ? { ...item, image: ogImg } : item;
+        })
+      );
+
+      return enriched.sort(byRecency);
     });
 
     if (!items.length) {

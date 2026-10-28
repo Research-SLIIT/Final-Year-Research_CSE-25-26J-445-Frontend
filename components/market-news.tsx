@@ -93,6 +93,10 @@ function Thumb({
   const [broken, setBroken] = useState(false)
   const src = item.image ?? item.logo
 
+  useEffect(() => {
+    setBroken(false)
+  }, [src])
+
   if (!src || broken) {
     return (
       <div

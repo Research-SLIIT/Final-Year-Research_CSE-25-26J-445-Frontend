@@ -138,19 +138,41 @@ function formatChartDate(ts: number, period: string): string {
 
 /** Fetches a CSE index/sector series through our proxy and shapes it for recharts. */
 async function loadSeries(chartId: number | string, period: string): Promise<Point[]> {
-  const res = await fetch("/api/cse/chart-data", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ chartId, period }),
-  })
-  if (!res.ok) throw new Error(`chart ${chartId} -> ${res.status}`)
+  try {
+    const res = await fetch("/api/cse/chart-data", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chartId, period }),
+    })
+    if (!res.ok) return []
 
-  const raw = await res.json()
-  const points: any[] = Array.isArray(raw) ? raw : raw?.data ?? []
-  return points.map((p) => ({
-    date: formatChartDate(p.d, period),
-    value: Number(p.v),
-  }))
+    const raw = await res.json()
+    let points: any[] = Array.isArray(raw) ? raw : raw?.data ?? []
+
+    // If 1D intraday has no trades yet, fallback to 1W series so users see recent trend
+    if (points.length === 0 && period === "1D") {
+      try {
+        const fallbackRes = await fetch("/api/cse/chart-data", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chartId, period: "1W" }),
+        })
+        if (fallbackRes.ok) {
+          const fallbackRaw = await fallbackRes.json()
+          if (Array.isArray(fallbackRaw) && fallbackRaw.length > 0) {
+            points = fallbackRaw
+          }
+        }
+      } catch {}
+    }
+
+    return points.map((p) => ({
+      date: formatChartDate(p.d, period),
+      value: Number(p.v),
+    }))
+  } catch {
+    return []
+  }
 }
 
 /**
@@ -310,7 +332,24 @@ function IndexCard({
         </div>
 
         <ResponsiveContainer width="100%" height={60}>
-          <AreaChart data={data} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+          <AreaChart
+            data={
+              data.length > 0
+                ? data
+                : quote?.value
+                  ? [
+                      {
+                        value:
+                          "previousClose" in quote && quote.previousClose != null
+                            ? quote.previousClose
+                            : quote.value,
+                      },
+                      { value: quote.value },
+                    ]
+                  : []
+            }
+            margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
+          >
             <defs>
               <linearGradient id={`spark-${title.replace(/\W/g, "")}`} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor={chartColor} stopOpacity={0.3} />
@@ -484,7 +523,10 @@ export default function Dashboard() {
     const load = async () => {
       try {
         const res = await fetch("/api/cse/market-status", { method: "POST" })
-        if (!res.ok) throw new Error(String(res.status))
+        if (!res.ok) {
+          setStatusError(true)
+          return
+        }
         const data = await res.json()
         setMarketStatus(data?.status ?? data?.marketStatus ?? null)
         setStatusError(false)
@@ -504,13 +546,13 @@ export default function Dashboard() {
     const load = async () => {
       try {
         const res = await fetch("/api/cse/indices")
-        if (!res.ok) throw new Error(String(res.status))
+        if (!res.ok) return
         const data = await res.json()
         setAspi(data.aspi ?? null)
         setSnp(data.snp ?? null)
         setSectors(data.sectors ?? [])
       } catch (err) {
-        console.error("[dashboard] indices unavailable:", err)
+        console.warn("[dashboard] indices unavailable:", err)
       } finally {
         setIndexLoading(false)
       }
@@ -525,12 +567,12 @@ export default function Dashboard() {
     const load = async () => {
       try {
         const res = await fetch("/api/cse/market-summary")
-        if (!res.ok) throw new Error(String(res.status))
+        if (!res.ok) return
         const data = await res.json()
         setTiles(data.tiles ?? null)
         setInternals(data.internals ?? null)
       } catch (err) {
-        console.error("[dashboard] market summary unavailable:", err)
+        console.warn("[dashboard] market summary unavailable:", err)
       } finally {
         setSummaryLoading(false)
       }
@@ -545,13 +587,13 @@ export default function Dashboard() {
     const load = async () => {
       try {
         const res = await fetch("/api/cse/movers")
-        if (!res.ok) throw new Error(String(res.status))
+        if (!res.ok) return
         const data = await res.json()
         setGainers(data.gainers ?? [])
         setLosers(data.losers ?? [])
         setMostActive(data.mostActive ?? [])
       } catch (err) {
-        console.error("[dashboard] movers unavailable:", err)
+        console.warn("[dashboard] movers unavailable:", err)
       } finally {
         setMoversLoading(false)
       }
@@ -955,7 +997,7 @@ export default function Dashboard() {
               />
             ))}
             {/* Keep the row filled while sectors load */}
-            {!indexLoading &&
+            {indexLoading &&
               featuredSectors.length === 0 &&
               Array.from({ length: 2 }).map((_, i) => (
                 <IndexCard key={i} title="Sector" quote={null} chartColor="#10b981" data={[]} loading />
